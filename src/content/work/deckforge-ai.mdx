@@ -74,6 +74,7 @@ next:
 import DecisionGrid from "../../components/case/DecisionGrid.astro";
 import LimitsNext from "../../components/case/LimitsNext.astro";
 import Figure from "../../components/case/Figure.astro";
+import DeckViewer from "../../components/case/DeckViewer.astro";
 import orientation from "../../assets/work/deckforge-ai/p0-orientation.png";
 import denoising from "../../assets/work/deckforge-ai/ui-denoising.jpg";
 import uploadOwn from "../../assets/work/deckforge-ai/ui-upload-own-decal.jpg";
@@ -128,11 +129,11 @@ about 30 seconds. After that, a generation takes 12–13 seconds.
   caption="Live denoising progress, reported without blocking the GPU."
 />
 
-<Figure
-  src={orbited}
+<DeckViewer
+  poster={orbited}
   number="04"
   alt="The 3D deck rotated to an angle, with the generated decal following the board's shape."
-  caption="The preview is a live WebGL scene, not a static mockup."
+  caption="The preview is a live WebGL scene, not a static mockup. This one runs DeckForge's deck model in the page."
 />
 
 <Figure

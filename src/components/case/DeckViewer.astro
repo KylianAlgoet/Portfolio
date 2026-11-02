@@ -1,0 +1,267 @@
+---
+import type { ImageMetadata } from "astro";
+import { Picture, getImage } from "astro:assets";
+
+// The DeckForge deck, live on the page. It starts as a still (which is also the fallback
+// without JS or WebGL); three.js only loads when the visitor asks for the 3D deck.
+
+interface Props {
+  poster: ImageMetadata;
+  alt: string;
+  caption: string;
+  number?: string;
+  /** Generated decals (512 × 1536), one per style. Without them the deck starts bare. */
+  decals?: { src: ImageMetadata; style: string }[];
+}
+
+const { poster, alt, caption, number, decals = [] } = Astro.props;
+const decalUrls = await Promise.all(
+  decals.map(async (d) => ({ style: d.style, url: (await getImage({ src: d.src, format: "png" })).src })),
+);
+---
+
+<figure class="deck" data-deck data-decals={JSON.stringify(decalUrls)}>
+  <div class="deck__stage" data-deck-stage>
+    <Picture
+      src={poster}
+      alt={alt}
+      formats={["avif", "webp"]}
+      widths={[640, 960, 1280].filter((w) => w <= poster.width)}
+      sizes="(min-width: 1200px) 860px, 100vw"
+    />
+    <button class="button button--primary deck__start" type="button" data-deck-start>
+      Rotate the deck in 3D
+    </button>
+  </div>
+
+  <div class="deck__controls" data-deck-controls hidden>
+    {
+      decalUrls.length > 0 && (
+        <div class="deck__styles" role="group" aria-label="Decal style">
+          {decalUrls.map((d, i) => (
+            <button class="deck__style" type="button" aria-pressed={i === 0 ? "true" : "false"} data-deck-decal={d.url}>
+              {d.style}
+            </button>
+          ))}
+        </div>
+      )
+    }
+    <label class="button button--secondary deck__upload">
+      Use your own image
+      <input class="visually-hidden" type="file" accept="image/png,image/jpeg,image/webp" data-deck-upload />
+    </label>
+    <button class="button button--secondary" type="button" data-deck-reset>Reset view</button>
+  </div>
+
+  <p class="deck__status" aria-live="polite" data-deck-status></p>
+  <figcaption class="label">{number && `Fig. ${number} · `}{caption}</figcaption>
+</figure>
+
+<script>
+  type Decal = { style: string; url: string };
+
+  const hasWebGL = () => {
+    try {
+      const canvas = document.createElement("canvas");
+      return Boolean(canvas.getContext("webgl2") ?? canvas.getContext("webgl"));
+    } catch {
+      return false;
+    }
+  };
+
+  document.querySelectorAll<HTMLElement>("[data-deck]").forEach((figure) => {
+    const stage = figure.querySelector<HTMLElement>("[data-deck-stage]")!;
+    const start = figure.querySelector<HTMLButtonElement>("[data-deck-start]")!;
+    const controls = figure.querySelector<HTMLElement>("[data-deck-controls]")!;
+    const status = figure.querySelector<HTMLElement>("[data-deck-status]")!;
+    const upload = figure.querySelector<HTMLInputElement>("[data-deck-upload]")!;
+    const decalButtons = [...figure.querySelectorAll<HTMLButtonElement>("[data-deck-decal]")];
+    const decals: Decal[] = JSON.parse(figure.dataset.decals ?? "[]");
+
+    const howTo = "Drag to rotate. Pinch, or hold Ctrl and scroll, to zoom.";
+    const stretchNote = (stretch: number) =>
+      `Stretched ${stretch.toFixed(2)}× along the deck to cover the whole surface, the fit DeckForge uses by default.`;
+
+    start.addEventListener("click", async () => {
+      if (!hasWebGL()) {
+        status.textContent = "3D isn't available in this browser. The still above shows the same preview.";
+        start.hidden = true;
+        return;
+      }
+
+      start.disabled = true;
+      start.textContent = "Loading the deck…";
+
+      try {
+        const { mountDeck } = await import("../../scripts/deck/scene");
+        const deck = mountDeck(stage, {
+          autoRotate: matchMedia("(prefers-reduced-motion: no-preference)").matches,
+        });
+
+        if (decals.length > 0) {
+          const stretch = await deck.showImage(decals[0].url);
+          status.textContent = `${howTo} ${stretchNote(stretch)}`;
+        } else {
+          status.textContent = `${howTo} This is DeckForge's deck model, bare. Put your own image on it to see how a decal maps.`;
+        }
+
+        stage.dataset.live = "";
+        start.remove();
+        controls.hidden = false;
+        (decalButtons[0] ?? upload).focus();
+
+        decalButtons.forEach((button) =>
+          button.addEventListener("click", async () => {
+            decalButtons.forEach((b) => b.setAttribute("aria-pressed", String(b === button)));
+            const stretch = await deck.showImage(button.dataset.deckDecal!);
+            status.textContent = `${button.textContent?.trim()} decal. ${stretchNote(stretch)}`;
+          }),
+        );
+
+        upload.addEventListener("change", async () => {
+          const file = upload.files?.[0];
+          if (!file) return;
+          try {
+            const stretch = await deck.showImage(file);
+            decalButtons.forEach((b) => b.setAttribute("aria-pressed", "false"));
+            status.textContent = `Your image, which stays in your browser. ${stretchNote(stretch)}`;
+          } catch {
+            status.textContent = "That file couldn't be read as an image. Try a PNG, JPEG or WebP.";
+          }
+          upload.value = "";
+        });
+
+        figure.querySelector("[data-deck-reset]")?.addEventListener("click", () => deck.reset());
+      } catch {
+        start.hidden = true;
+        status.textContent = "The 3D deck couldn't load. The still above shows the same preview.";
+      }
+    });
+  });
+</script>
+
+<style>
+  .deck {
+    display: grid;
+    gap: var(--space-3);
+    margin: var(--space-6) 0 0;
+  }
+
+  .deck__stage {
+    position: relative;
+    aspect-ratio: 16 / 10;
+    overflow: hidden;
+    border: 1px solid var(--rule);
+    background: #e8e6e1; /* DeckForge's preview background, so the poster and the live deck match */
+  }
+
+  .deck__stage :global(picture),
+  .deck__stage :global(img) {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .deck__stage[data-live] :global(picture) {
+    display: none;
+  }
+
+  /* A deck is long and thin; on phones give the live view more height than the 16:10 still. */
+  @media (max-width: 639px) {
+    .deck__stage[data-live] {
+      aspect-ratio: 1;
+    }
+  }
+
+  .deck__stage :global(canvas) {
+    display: block;
+    width: 100%;
+    height: 100%;
+    cursor: grab;
+  }
+
+  .deck__stage :global(canvas:active) {
+    cursor: grabbing;
+  }
+
+  /* The button needs JS, so it only appears once the page is scripted. */
+  .deck__start {
+    display: none;
+  }
+
+  :global(.js) .deck__start {
+    display: inline-flex;
+    position: absolute;
+    left: 50%;
+    bottom: var(--space-4);
+    transform: translateX(-50%);
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--paper) 70%, transparent);
+  }
+
+  .deck__start[hidden] {
+    display: none !important;
+  }
+
+  .deck__start:disabled {
+    cursor: progress;
+  }
+
+  .deck__controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  .deck__controls[hidden] {
+    display: none;
+  }
+
+  .deck__styles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-right: auto;
+  }
+
+  .deck__style {
+    min-height: 44px;
+    padding: 0 var(--space-3);
+    border: 1px solid var(--ink);
+    border-radius: 2px;
+    background: transparent;
+    color: var(--ink);
+    font: inherit;
+    font-size: var(--fs-small);
+    cursor: pointer;
+  }
+
+  .deck__style[aria-pressed="true"] {
+    background: var(--ink);
+    color: var(--paper);
+  }
+
+  .deck__upload {
+    cursor: pointer;
+  }
+
+  .deck__upload:focus-within {
+    outline: 2px solid var(--signal);
+    outline-offset: 3px;
+  }
+
+  .deck__status {
+    max-width: var(--text-width);
+    min-height: 1.5em;
+    font-size: var(--fs-small);
+    color: var(--ink-body);
+  }
+
+  .deck__status:empty {
+    display: none;
+  }
+
+  figcaption {
+    font-weight: 400;
+  }
+</style>
