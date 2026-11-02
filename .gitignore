@@ -1,0 +1,44 @@
+# --- Build output -------------------------------------------------
+dist/
+.astro/
+.vercel/
+.netlify/
+
+# --- Dependencies -------------------------------------------------
+node_modules/
+
+# --- Test & audit output ------------------------------------------
+test-results/
+playwright-report/
+playwright/.cache/
+.lighthouseci/
+coverage/
+
+# --- Logs ---------------------------------------------------------
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+
+# --- Environment & secrets ----------------------------------------
+.env
+.env.*
+!.env.example
+
+# --- Local tool configuration -------------------------------------
+.claude/
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# --- OS files -----------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Raw media working files (export web-ready versions to src/assets)
+*.psd
+*.blend
+*.blend1
+*.mov
+raw-media/

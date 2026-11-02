@@ -1,0 +1,215 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { site } from "../data/site";
+
+const projects = [
+  {
+    number: "01",
+    title: "DeckForge AI",
+    href: "/work/deckforge-ai",
+    summary: "Locally trained image generation, previewed on an interactive 3D skateboard deck.",
+    tags: ["Python", "FastAPI", "React", "Three.js", "LoRA"],
+  },
+  {
+    number: "02",
+    title: "SK8Sense",
+    href: "/work/sk8sense",
+    summary: "A connected skateboard: ESP32 sensors, a React Native app and AI coaching.",
+    tags: ["ESP32", "BLE", "React Native", "Firebase", "Claude API"],
+  },
+];
+---
+
+<BaseLayout>
+  <section class="hero container" aria-labelledby="hero-title">
+    <div class="grid hero__grid">
+      <div class="hero__intro">
+        <p class="label">{site.role} · {site.location}</p>
+        <h1 id="hero-title" class="hero__title">
+          I build software where AI, interfaces and <em>hardware</em> meet.
+        </h1>
+        <p class="hero__lead">
+          Recent Multimedia &amp; Creative Technology graduate from Erasmushogeschool Brussel. I'm looking for a junior
+          role as an AI engineer, software developer or fullstack developer.
+        </p>
+        <div class="hero__actions">
+          <a class="button button--primary" href="#work">View selected work</a>
+          <a class="button button--secondary" href={site.cv} download>Download CV (PDF)</a>
+        </div>
+        <p class="hero__links">
+          <a href={site.github} rel="noopener">GitHub ↗</a>
+          <a href={`mailto:${site.email}`}>{site.email}</a>
+        </p>
+      </div>
+
+      <nav class="hero__index" aria-label="Selected work">
+        <p class="label hero__index-label">Index · Selected work</p>
+        <ul>
+          {
+            projects.map((p) => (
+              <li>
+                <a class="index-row" href={p.href}>
+                  <span class="index-row__head">
+                    <span class="label">{p.number}</span>
+                    <span class="index-row__title">{p.title}</span>
+                    <span class="index-row__arrow" aria-hidden="true">→</span>
+                  </span>
+                  <span class="index-row__summary">{p.summary}</span>
+                  <span class="label index-row__tags">{p.tags.join(" · ")}</span>
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </nav>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .hero {
+    padding-top: clamp(var(--space-5), 6vw, var(--space-7));
+  }
+
+  .hero__grid {
+    row-gap: var(--space-6);
+  }
+
+  .hero__intro {
+    grid-column: 1 / -1;
+  }
+
+  .hero__index {
+    grid-column: 1 / -1;
+  }
+
+  @media (min-width: 960px) {
+    .hero__intro {
+      grid-column: span 7;
+    }
+
+    .hero__index {
+      grid-column: 9 / span 4;
+      padding-top: var(--space-1);
+    }
+  }
+
+  .hero__title {
+    margin-top: var(--space-4);
+    font-size: var(--fs-hero);
+    line-height: 0.98;
+  }
+
+  .hero__lead {
+    margin-top: var(--space-4);
+    max-width: 34em;
+    font-size: clamp(var(--fs-body), 0.95rem + 0.6vw, var(--fs-lead));
+    line-height: 1.5;
+    color: var(--ink-body);
+  }
+
+  .hero__actions {
+    margin-top: var(--space-5);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  @media (max-width: 639px) {
+    .hero__actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .hero__actions .button {
+      padding: 0 12px;
+    }
+  }
+
+  .hero__links {
+    margin-top: var(--space-3);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-4);
+    font-size: var(--fs-small);
+  }
+
+  .hero__links a {
+    display: inline-block;
+    padding-block: 10px;
+  }
+
+  .hero__links a:first-child {
+    font-weight: 500;
+  }
+
+  .hero__index ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .hero__index-label {
+    padding-bottom: var(--space-2);
+    border-bottom: 1px solid var(--ink);
+  }
+
+  .index-row {
+    display: grid;
+    gap: 10px;
+    padding: 22px 0 24px;
+    border-bottom: 1px solid var(--rule);
+    text-decoration: none;
+    color: var(--ink);
+  }
+
+  .index-row:hover {
+    color: var(--ink);
+  }
+
+  .index-row__head {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-3);
+  }
+
+  .index-row__title {
+    flex: 1;
+    font-family: var(--ff-serif);
+    font-size: clamp(1.875rem, 1.5rem + 1vw, 2.375rem);
+    line-height: 1;
+    text-decoration: underline 1px transparent;
+    text-underline-offset: 0.15em;
+    transition: text-decoration-color var(--dur-fast) var(--ease);
+  }
+
+  .index-row__arrow {
+    color: var(--signal);
+    font-size: 1.25rem;
+    transition: transform var(--dur-fast) var(--ease);
+  }
+
+  .index-row:hover .index-row__title {
+    text-decoration-color: var(--signal);
+  }
+
+  .index-row:hover .index-row__arrow {
+    transform: translateX(4px);
+  }
+
+  .index-row__summary,
+  .index-row__tags {
+    padding-left: calc(var(--space-3) + 1.25rem);
+  }
+
+  .index-row__summary {
+    font-size: 1rem;
+    line-height: 1.45;
+    color: var(--ink-body);
+  }
+
+  .index-row__tags {
+    font-weight: 400;
+    letter-spacing: 0.04em;
+  }
+</style>

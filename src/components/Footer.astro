@@ -1,0 +1,87 @@
+---
+import { site } from "../data/site";
+
+const year = new Date().getFullYear();
+---
+
+<footer class="site-footer">
+  <div class="container site-footer__inner">
+    <p>© {year} {site.name}</p>
+    <p class="site-footer__colophon">Set in Instrument Serif, Geist and Geist Mono. Built with Astro.</p>
+    <div class="theme-toggle" role="group" aria-label="Colour theme">
+      <span class="label">Theme</span>
+      <button type="button" data-theme-set="light" aria-pressed="false">Light</button>
+      <button type="button" data-theme-set="dark" aria-pressed="false">Dark</button>
+    </div>
+  </div>
+</footer>
+
+<script>
+  const root = document.documentElement;
+  const buttons = document.querySelectorAll<HTMLButtonElement>("[data-theme-set]");
+
+  const current = () =>
+    root.dataset.theme ?? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+
+  const sync = () =>
+    buttons.forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.themeSet === current())));
+
+  buttons.forEach((button) =>
+    button.addEventListener("click", () => {
+      const theme = button.dataset.themeSet;
+      if (!theme) return;
+      root.dataset.theme = theme;
+      try {
+        localStorage.setItem("theme", theme);
+      } catch {}
+      sync();
+    }),
+  );
+
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", sync);
+  sync();
+</script>
+
+<style>
+  .site-footer {
+    margin-top: var(--section-gap);
+    border-top: 1px solid var(--rule);
+    font-size: var(--fs-small);
+    color: var(--ink-2);
+  }
+
+  .site-footer__inner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3) var(--space-5);
+    padding-block: var(--space-5);
+  }
+
+  .site-footer__colophon {
+    flex: 1 1 auto;
+  }
+
+  .theme-toggle {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .theme-toggle button {
+    min-height: 44px;
+    padding: 0 14px;
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    background: transparent;
+    color: var(--ink-2);
+    font: inherit;
+    cursor: pointer;
+  }
+
+  .theme-toggle button[aria-pressed="true"] {
+    border-color: var(--ink);
+    color: var(--ink);
+  }
+</style>

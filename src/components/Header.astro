@@ -1,0 +1,271 @@
+---
+import { nav, site } from "../data/site";
+
+const path = Astro.url.pathname;
+// Highlight a nav item only when we are on a page inside its section.
+const isCurrent = (href: string) =>
+  (href === "/#work" && path.startsWith("/work")) ||
+  (href === "/#playground" && path.startsWith("/playground"));
+---
+
+<header class="site-header" data-header>
+  <div class="container site-header__inner">
+    <a class="site-header__name" href="/">{site.name}</a>
+
+    <nav class="site-nav" aria-label="Main">
+      <ul>
+        {
+          nav.map((item) => (
+            <li>
+              <a href={item.href} aria-current={isCurrent(item.href) ? "page" : undefined}>
+                {item.label}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
+
+    <div class="site-header__actions">
+      <a class="button button--secondary site-header__cv" href={site.cv} download>CV ↓</a>
+      <a class="site-header__github" href={site.github} rel="noopener">GitHub ↗</a>
+      <button class="menu-button" type="button" aria-haspopup="dialog" aria-controls="site-menu" data-menu-open>
+        <span class="visually-hidden">Open menu</span>
+        <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">
+          <line x1="3" y1="7" x2="17" y2="7" stroke="currentColor" stroke-width="1.5"></line>
+          <line x1="3" y1="13" x2="17" y2="13" stroke="currentColor" stroke-width="1.5"></line>
+        </svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<dialog class="site-menu" id="site-menu" aria-label="Menu" data-menu>
+  <div class="site-menu__top">
+    <span class="site-header__name">{site.name}</span>
+    <button class="menu-button" type="button" data-menu-close>
+      <span class="visually-hidden">Close menu</span>
+      <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">
+        <line x1="4" y1="4" x2="16" y2="16" stroke="currentColor" stroke-width="1.5"></line>
+        <line x1="16" y1="4" x2="4" y2="16" stroke="currentColor" stroke-width="1.5"></line>
+      </svg>
+    </button>
+  </div>
+  <nav aria-label="Menu">
+    <ul class="site-menu__list">
+      {
+        nav.map((item, i) => (
+          <li>
+            <a href={item.href} data-menu-link>
+              <span class="label">0{i + 1}</span>
+              {item.label}
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </nav>
+  <div class="site-menu__actions">
+    <a class="button button--primary" href={site.cv} download>Download CV (PDF)</a>
+    <a class="button button--secondary" href={site.github} rel="noopener">GitHub ↗</a>
+    <a class="button button--secondary" href={`mailto:${site.email}`}>Email</a>
+  </div>
+</dialog>
+
+<script>
+  const header = document.querySelector<HTMLElement>("[data-header]");
+  const menu = document.querySelector<HTMLDialogElement>("[data-menu]");
+  const openButton = document.querySelector<HTMLButtonElement>("[data-menu-open]");
+
+  const onScroll = () => header?.toggleAttribute("data-scrolled", window.scrollY > 24);
+  onScroll();
+  window.addEventListener("scroll", onScroll, { passive: true });
+
+  openButton?.addEventListener("click", () => menu?.showModal());
+  menu?.querySelector("[data-menu-close]")?.addEventListener("click", () => menu.close());
+  menu?.querySelectorAll("[data-menu-link]").forEach((link) =>
+    link.addEventListener("click", () => menu.close()),
+  );
+  menu?.addEventListener("close", () => openButton?.focus());
+</script>
+
+<style>
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--paper);
+    border-bottom: 1px solid transparent;
+    transition: border-color var(--dur-ui) var(--ease);
+  }
+
+  .site-header[data-scrolled] {
+    border-bottom-color: var(--rule);
+  }
+
+  .site-header__inner {
+    height: var(--header-height);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+  }
+
+  .site-header__name {
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .site-nav ul {
+    display: flex;
+    gap: var(--space-5);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .site-nav a {
+    display: block;
+    padding: 12px 0;
+    border-bottom: 2px solid transparent;
+    color: var(--ink-2);
+    font-size: var(--fs-small);
+    text-decoration: none;
+  }
+
+  .site-nav a:hover {
+    color: var(--ink);
+  }
+
+  .site-nav a[aria-current="page"] {
+    color: var(--ink);
+    border-bottom-color: var(--ink);
+  }
+
+  .site-header__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+
+  .site-header__cv {
+    min-height: 40px;
+    padding: 0 16px;
+  }
+
+  .site-header__github {
+    padding: 10px 4px;
+    font-size: var(--fs-small);
+    font-weight: 500;
+  }
+
+  .menu-button {
+    display: none;
+    width: 44px;
+    height: 44px;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 1px solid var(--ink);
+    border-radius: 2px;
+    background: transparent;
+    color: var(--ink);
+    cursor: pointer;
+  }
+
+  @media (max-width: 959px) {
+    .site-nav,
+    .site-header__github {
+      display: none;
+    }
+
+    .menu-button {
+      display: inline-flex;
+    }
+
+    .site-header__actions {
+      gap: var(--space-2);
+    }
+
+    .site-header__cv {
+      min-height: 44px;
+      border-color: transparent;
+      padding: 0 12px;
+    }
+  }
+
+  /* Mobile menu sheet */
+
+  .site-menu {
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    max-height: none;
+    margin: 0;
+    padding: 0 var(--margin) var(--space-5);
+    border: 0;
+    background: var(--paper);
+    color: var(--ink);
+    flex-direction: column;
+  }
+
+  .site-menu[open] {
+    display: flex;
+  }
+
+  .site-menu::backdrop {
+    background: var(--paper);
+  }
+
+  .site-menu__top {
+    height: var(--header-height);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .site-menu__top .menu-button {
+    display: inline-flex;
+  }
+
+  .site-menu__list {
+    margin: var(--space-4) 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .site-menu__list a {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-3);
+    padding: var(--space-3) 0;
+    border-bottom: 1px solid var(--rule);
+    font-family: var(--ff-serif);
+    font-size: 2.5rem;
+    line-height: 1.1;
+    text-decoration: none;
+  }
+
+  .site-menu__actions {
+    margin-top: auto;
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .site-menu[open] {
+      animation: menu-in var(--dur-ui) var(--ease);
+    }
+
+    @keyframes menu-in {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+    }
+  }
+</style>
