@@ -1,0 +1,197 @@
+---
+import type { CollectionEntry } from "astro:content";
+import { Image, getImage } from "astro:assets";
+
+interface Props {
+  items: CollectionEntry<"playground">[];
+  /** Heading level for the tile titles, so the outline stays correct on each page. */
+  headingLevel?: "h3" | "h2";
+}
+
+const { items, headingLevel: Heading = "h3" } = Astro.props;
+const tape = { game: "Game", render: "Render", animation: "Animation" } as const;
+
+// Work out where each tile goes: games to their own page, renders and animations to the lightbox.
+const tiles = await Promise.all(
+  items.map(async (item) => {
+    const { type, cover, video } = item.data;
+    const full = cover ? await getImage({ src: cover, width: Math.min(cover.width, 2400), format: "webp" }) : undefined;
+    const meta = `${tape[type]} · ${item.data.tools.join(", ")} · ${item.data.year}`;
+
+    if (type === "game") return { item, meta, href: `/playground/${item.id}`, lightbox: undefined, poster: undefined };
+    if (type === "animation" && video) return { item, meta, href: video, lightbox: "video", poster: full?.src };
+    if (full) return { item, meta, href: full.src, lightbox: "image", poster: undefined };
+    return { item, meta, href: undefined, lightbox: undefined, poster: undefined };
+  }),
+);
+---
+
+<ul class="tiles" data-lightbox-group>
+  {
+    tiles.map(({ item, meta, href, lightbox, poster }) => {
+      const Tag = href ? "a" : "div";
+      return (
+        <li class:list={["tile", `tile--${item.data.type}`]} id={item.id} data-reveal>
+          <Tag
+            class="tile__inner"
+            href={href}
+            data-lightbox={lightbox ? "" : undefined}
+            data-type={lightbox}
+            data-poster={poster}
+            data-alt={item.data.coverAlt}
+            data-title={item.data.title}
+            data-meta={meta}
+            data-text={item.data.summary}
+          >
+            <span class="tile__media">
+              {item.data.cover ? (
+                <Image
+                  src={item.data.cover}
+                  alt={item.data.coverAlt ?? ""}
+                  widths={[400, 800, 1200].filter((w) => w <= item.data.cover!.width)}
+                  sizes={item.data.type === "game" ? "(min-width: 960px) 50vw, 100vw" : "(min-width: 960px) 25vw, (min-width: 640px) 50vw, 100vw"}
+                />
+              ) : (
+                <span class="tile__placeholder label">No media yet</span>
+              )}
+              {lightbox === "video" && <span class="tile__play label" aria-hidden="true">▶ Play</span>}
+            </span>
+            <span class="tile__tape label">{tape[item.data.type]}</span>
+            <span class="tile__meta">
+              <Heading class="tile__title">{item.data.title}</Heading>
+              <span class="label">
+                {item.data.tools.join(", ")} · {item.data.year}
+              </span>
+            </span>
+            <span class="tile__summary">{item.data.summary}</span>
+          </Tag>
+        </li>
+      );
+    })
+  }
+</ul>
+
+<style>
+  .tiles {
+    margin: var(--space-5) 0 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-flow: dense;
+    gap: var(--space-6) var(--gutter);
+  }
+
+  .tile {
+    grid-column: span 2;
+  }
+
+  @media (min-width: 640px) {
+    .tile--render,
+    .tile--animation {
+      grid-column: span 1;
+    }
+  }
+
+  @media (min-width: 960px) {
+    .tiles {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+
+  .tile__inner {
+    position: relative;
+    display: grid;
+    gap: var(--space-2);
+    align-content: start;
+    text-decoration: none;
+  }
+
+  .tile__media {
+    position: relative;
+    display: block;
+    overflow: hidden;
+    aspect-ratio: 16 / 9;
+    background: var(--paper-2);
+    border: 1px solid var(--rule);
+  }
+
+  .tile--render .tile__media,
+  .tile--animation .tile__media {
+    aspect-ratio: 4 / 5;
+  }
+
+  .tile__media :global(img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform var(--dur-reveal) var(--ease);
+  }
+
+  a.tile__inner:hover .tile__media :global(img) {
+    transform: scale(1.02);
+  }
+
+  .tile__placeholder {
+    display: grid;
+    place-items: center;
+    height: 100%;
+    font-weight: 400;
+  }
+
+  .tile__play {
+    position: absolute;
+    right: var(--space-2);
+    bottom: var(--space-2);
+    padding: 4px 8px;
+    background: var(--paper);
+    color: var(--ink);
+  }
+
+  /* The one zine-like touch on the site: a slightly crooked label. */
+  .tile__tape {
+    position: absolute;
+    top: 14px;
+    left: -6px;
+    padding: 4px 10px;
+    background: var(--ink);
+    color: var(--paper);
+    transform: rotate(-3deg);
+    transition: transform var(--dur-fast) var(--ease);
+  }
+
+  a.tile__inner:hover .tile__tape {
+    transform: rotate(0deg);
+  }
+
+  .tile__meta {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: var(--space-1) var(--space-2);
+  }
+
+  .tile__meta .label {
+    font-weight: 400;
+  }
+
+  .tile__title {
+    font-family: var(--ff-serif);
+    font-size: 1.625rem;
+    font-weight: 400;
+    line-height: 1.1;
+  }
+
+  a.tile__inner:hover .tile__title {
+    text-decoration: underline 2px var(--signal);
+    text-underline-offset: 0.12em;
+  }
+
+  .tile__summary {
+    max-width: 52ch;
+    font-size: var(--fs-small);
+    line-height: 1.5;
+    color: var(--ink-body);
+  }
+</style>

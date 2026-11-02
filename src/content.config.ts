@@ -49,7 +49,8 @@ const work = defineCollection({
     }),
 });
 
-// Creative work. A "game" gets its own page; renders and animations open in a lightbox.
+// Creative work. A "game" gets its own page (body: What it is / What I made / What I learned);
+// renders and animations open in the lightbox. Videos live in public/media/playground/.
 const playground = defineCollection({
   loader: glob({ pattern: "**/*.{md,mdx}", base: "./src/content/playground" }),
   schema: ({ image }) =>
@@ -63,7 +64,12 @@ const playground = defineCollection({
       draft: z.boolean().default(false),
       cover: image().optional(),
       coverAlt: z.string().optional(),
-      video: z.string().optional(),
+      video: z.string().startsWith("/").optional(),
+      role: z.string().optional(),
+      link: z.object({ label: z.string(), href: z.url() }).optional(),
+      gallery: z
+        .array(z.object({ src: image(), alt: z.string(), caption: z.string().optional() }))
+        .default([]),
     }),
 });
 

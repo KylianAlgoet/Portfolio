@@ -1,0 +1,341 @@
+---
+import type { GetStaticPaths } from "astro";
+import { Picture, getImage } from "astro:assets";
+import { render } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import Lightbox from "../../components/playground/Lightbox.astro";
+import { getPlayground } from "../../lib/content";
+import "../../styles/prose.css";
+
+// Only games get a page of their own; renders and animations live in the lightbox.
+export const getStaticPaths = (async () => {
+  const games = (await getPlayground()).filter((item) => item.data.type === "game");
+  return games.map((entry) => ({ params: { slug: entry.id }, props: { entry } }));
+}) satisfies GetStaticPaths;
+
+const { entry } = Astro.props;
+const { data } = entry;
+const { Content } = await render(entry);
+
+const poster = data.cover ? await getImage({ src: data.cover, width: Math.min(data.cover.width, 1600), format: "webp" }) : undefined;
+const gallery = await Promise.all(
+  data.gallery.map(async (shot) => ({
+    ...shot,
+    full: await getImage({ src: shot.src, width: Math.min(shot.src.width, 2400), format: "webp" }),
+  })),
+);
+const meta = `Game · ${data.tools.join(", ")} · ${data.year}`;
+---
+
+<BaseLayout title={data.title} description={data.summary}>
+  <article class="game">
+    <header class="container game__header">
+      <a class="label game__back" href="/playground">← Playground</a>
+      <div class="grid game__title-row">
+        <h1 class="game__title">{data.title}</h1>
+        <p class="game__summary">{data.summary}</p>
+      </div>
+    </header>
+
+    {
+      (data.video || data.cover) && (
+        <figure class="container game__hero">
+          <div class="game__hero-frame">
+            {data.video ? (
+              <video controls playsinline preload="none" poster={poster?.src} aria-label={data.coverAlt}>
+                <source src={data.video} type="video/mp4" />
+              </video>
+            ) : (
+              <Picture
+                src={data.cover!}
+                alt={data.coverAlt ?? ""}
+                formats={["avif", "webp"]}
+                widths={[640, 960, 1280, 1600].filter((w) => w <= data.cover!.width)}
+                sizes="(min-width: 1416px) 1320px, 100vw"
+                loading="eager"
+                fetchpriority="high"
+              />
+            )}
+          </div>
+          <figcaption class="label">{data.video ? "Gameplay video" : "Fig. 01"} · {data.title}</figcaption>
+        </figure>
+      )
+    }
+
+    <div class="container grid game__body">
+      <dl class="game__meta">
+        <div>
+          <dt class="label">Type</dt>
+          <dd>Game</dd>
+        </div>
+        <div>
+          <dt class="label">Year</dt>
+          <dd>{data.year}</dd>
+        </div>
+        <div>
+          <dt class="label">Tools</dt>
+          <dd>{data.tools.join(", ")}</dd>
+        </div>
+        {
+          data.role && (
+            <div>
+              <dt class="label">Role</dt>
+              <dd>{data.role}</dd>
+            </div>
+          )
+        }
+        {
+          data.link && (
+            <div>
+              <dt class="visually-hidden">Link</dt>
+              <dd>
+                <a href={data.link.href} rel="noopener">{data.link.label} ↗</a>
+              </dd>
+            </div>
+          )
+        }
+      </dl>
+
+      <div class="game__content prose">
+        <Content />
+      </div>
+    </div>
+
+    {
+      gallery.length > 0 && (
+        <section class="container game__gallery" aria-labelledby="screenshots">
+          <h2 id="screenshots" class="label game__gallery-title">Screenshots</h2>
+          <ul class="game__shots" data-lightbox-group>
+            {gallery.map((shot) => (
+              <li data-reveal>
+                <a
+                  href={shot.full.src}
+                  data-lightbox
+                  data-type="image"
+                  data-alt={shot.alt}
+                  data-title={data.title}
+                  data-meta={meta}
+                  data-text={shot.caption}
+                >
+                  <Picture
+                    src={shot.src}
+                    alt={shot.alt}
+                    formats={["avif", "webp"]}
+                    widths={[480, 800, 1200].filter((w) => w <= shot.src.width)}
+                    sizes="(min-width: 960px) 50vw, 100vw"
+                  />
+                </a>
+                {shot.caption && <p class="label game__shot-caption">{shot.caption}</p>}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )
+    }
+
+    <nav class="container game__next" aria-label="Back to the Playground">
+      <a href="/playground">
+        <span class="label">More creative work</span>
+        <span class="game__next-title">Back to the Playground <span aria-hidden="true">→</span></span>
+      </a>
+    </nav>
+  </article>
+
+  <Lightbox />
+</BaseLayout>
+
+<style>
+  .game__header {
+    padding-top: clamp(var(--space-4), 4vw, var(--space-6));
+    display: grid;
+    gap: var(--space-5);
+  }
+
+  .game__back {
+    justify-self: start;
+    padding-block: 10px;
+    font-weight: 400;
+    text-decoration: none;
+  }
+
+  .game__title-row {
+    row-gap: var(--space-3);
+    align-items: end;
+  }
+
+  .game__title,
+  .game__summary {
+    grid-column: 1 / -1;
+  }
+
+  .game__title {
+    font-size: clamp(3.25rem, 2rem + 6vw, 7rem);
+    line-height: 0.95;
+    letter-spacing: -0.015em;
+  }
+
+  .game__summary {
+    font-size: clamp(1.125rem, 1rem + 0.6vw, 1.375rem);
+    line-height: 1.4;
+  }
+
+  @media (min-width: 960px) {
+    .game__title {
+      grid-column: span 7;
+    }
+
+    .game__summary {
+      grid-column: 8 / span 5;
+      padding-bottom: 0.5rem;
+    }
+  }
+
+  .game__hero {
+    margin-top: var(--space-6);
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .game__hero-frame {
+    aspect-ratio: 16 / 9;
+    border: 1px solid var(--rule);
+    background: var(--paper-2);
+    overflow: hidden;
+  }
+
+  .game__hero-frame :global(img),
+  .game__hero-frame video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .game__hero figcaption {
+    font-weight: 400;
+  }
+
+  .game__body {
+    margin-top: var(--section-gap);
+    row-gap: var(--space-6);
+    align-items: start;
+  }
+
+  .game__meta {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-4) var(--gutter);
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--ink);
+    font-size: var(--fs-small);
+    line-height: 1.45;
+  }
+
+  .game__meta > div {
+    display: grid;
+    gap: var(--space-1);
+    align-content: start;
+  }
+
+  .game__meta dt {
+    font-weight: 400;
+  }
+
+  .game__meta a {
+    display: inline-block;
+    padding-block: 4px;
+    font-weight: 500;
+  }
+
+  .game__content {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+
+  @media (min-width: 960px) {
+    .game__meta {
+      grid-column: span 3;
+      grid-template-columns: 1fr;
+      position: sticky;
+      top: calc(var(--header-height) + var(--space-4));
+    }
+
+    .game__content {
+      grid-column: 5 / span 8;
+    }
+  }
+
+  .game__gallery {
+    margin-top: var(--section-gap);
+  }
+
+  .game__gallery-title {
+    padding-bottom: var(--space-2);
+    border-bottom: 1px solid var(--ink);
+  }
+
+  .game__shots {
+    margin: var(--space-4) 0 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: var(--space-5) var(--gutter);
+  }
+
+  @media (min-width: 640px) {
+    .game__shots {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  .game__shots a {
+    display: block;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    border: 1px solid var(--rule);
+    background: var(--paper-2);
+  }
+
+  .game__shots :global(img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform var(--dur-reveal) var(--ease);
+  }
+
+  .game__shots a:hover :global(img) {
+    transform: scale(1.02);
+  }
+
+  .game__shot-caption {
+    margin-top: var(--space-2);
+    font-weight: 400;
+  }
+
+  .game__next {
+    margin-top: var(--section-gap);
+  }
+
+  .game__next a {
+    display: grid;
+    gap: var(--space-3);
+    padding-top: var(--space-5);
+    border-top: 1px solid var(--ink);
+    text-decoration: none;
+  }
+
+  .game__next a:hover {
+    color: var(--ink);
+  }
+
+  .game__next-title {
+    font-family: var(--ff-serif);
+    font-size: var(--fs-h1);
+    line-height: 1;
+  }
+
+  .game__next a:hover .game__next-title {
+    text-decoration: underline 2px var(--signal);
+    text-underline-offset: 0.1em;
+  }
+</style>

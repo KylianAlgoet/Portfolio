@@ -4,6 +4,7 @@ import { Picture } from "astro:assets";
 import { render } from "astro:content";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import FactStrip from "../../components/FactStrip.astro";
+import "../../styles/prose.css";
 import { getWork } from "../../lib/content";
 
 export const getStaticPaths = (async () => {
@@ -340,58 +341,5 @@ const coverWidths = (isPortrait ? [280, 420, 560] : [640, 960, 1280, 1440]).filt
 
   .case__next-summary {
     color: var(--ink-2);
-  }
-
-  /* Prose inside the MDX body */
-
-  .prose > :global(h2) {
-    margin-top: var(--space-8);
-    counter-increment: section;
-    scroll-margin-top: calc(var(--header-height) + var(--space-4));
-  }
-
-  .prose > :global(h2:first-child) {
-    margin-top: 0;
-  }
-
-  .prose > :global(h2::before) {
-    content: counter(section, decimal-leading-zero);
-    display: block;
-    margin-bottom: var(--space-2);
-    font-family: var(--ff-mono);
-    font-size: var(--fs-label);
-    font-weight: 500;
-    letter-spacing: 0.06em;
-    color: var(--ink-2);
-  }
-
-  .prose {
-    counter-reset: section;
-  }
-
-  .prose > :global(p),
-  .prose > :global(ul) {
-    max-width: var(--text-width);
-    margin-top: var(--space-4);
-    color: var(--ink-body);
-  }
-
-  .prose > :global(ul) {
-    padding-left: 1.1em;
-    display: grid;
-    gap: var(--space-3);
-  }
-
-  .prose :global(strong) {
-    color: var(--ink);
-    font-weight: 600;
-  }
-
-  .prose :global(code) {
-    font-family: var(--ff-mono);
-    font-size: 0.9em;
-    padding: 0.1em 0.3em;
-    background: var(--paper-2);
-    border-radius: 2px;
   }
 </style>

@@ -1,0 +1,82 @@
+---
+import type { GetStaticPaths } from "astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import PlaygroundGrid from "../../components/playground/PlaygroundGrid.astro";
+import Lightbox from "../../components/playground/Lightbox.astro";
+import { playground } from "../../data/home";
+import { getPlayground } from "../../lib/content";
+
+// A rest route so /playground is only built once there is published work to show.
+export const getStaticPaths = (async () => {
+  const items = await getPlayground();
+  return items.length > 0 ? [{ params: { index: undefined }, props: { items } }] : [];
+}) satisfies GetStaticPaths;
+
+const { items } = Astro.props;
+---
+
+<BaseLayout title={playground.title} description={playground.intro}>
+  <header class="container playground__header">
+    <p class="label">Creative work · {String(items.length).padStart(2, "0")} items</p>
+    <div class="grid playground__title-row">
+      <h1 class="playground__title">{playground.title}</h1>
+      <p class="playground__intro">{playground.intro}</p>
+    </div>
+  </header>
+
+  <div class="container playground__grid">
+    <PlaygroundGrid items={items} headingLevel="h2" />
+  </div>
+
+  <Lightbox />
+</BaseLayout>
+
+<style>
+  .playground__header {
+    padding-top: clamp(var(--space-5), 5vw, var(--space-7));
+    display: grid;
+    gap: var(--space-4);
+  }
+
+  .playground__header > .label {
+    font-weight: 400;
+  }
+
+  .playground__title-row {
+    row-gap: var(--space-3);
+    align-items: end;
+    padding-bottom: var(--space-4);
+    border-bottom: 1px solid var(--ink);
+  }
+
+  .playground__title,
+  .playground__intro {
+    grid-column: 1 / -1;
+  }
+
+  .playground__title {
+    font-size: clamp(3.25rem, 2rem + 6vw, 7rem);
+    line-height: 0.95;
+    letter-spacing: -0.015em;
+  }
+
+  .playground__intro {
+    font-size: clamp(1.125rem, 1rem + 0.6vw, 1.375rem);
+    line-height: 1.4;
+  }
+
+  @media (min-width: 960px) {
+    .playground__title {
+      grid-column: span 7;
+    }
+
+    .playground__intro {
+      grid-column: 8 / span 5;
+      padding-bottom: 0.5rem;
+    }
+  }
+
+  .playground__grid {
+    margin-top: var(--space-3);
+  }
+</style>

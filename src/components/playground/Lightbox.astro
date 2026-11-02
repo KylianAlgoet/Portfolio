@@ -1,0 +1,231 @@
+---
+// One shared viewer. Any link with data-lightbox opens in it; the links inside the same
+// [data-lightbox-group] form the sequence for the arrow keys. Without JS the links still
+// open the full-size file.
+---
+
+<dialog class="lightbox" aria-label="Media viewer" data-lightbox-dialog>
+  <div class="lightbox__bar">
+    <p class="label lightbox__count" data-lightbox-count></p>
+    <button class="lightbox__button" type="button" data-lightbox-close>
+      Close <span aria-hidden="true">×</span>
+    </button>
+  </div>
+
+  <figure class="lightbox__figure">
+    <div class="lightbox__media" data-lightbox-media></div>
+    <figcaption class="lightbox__caption">
+      <p class="lightbox__title" data-lightbox-title></p>
+      <p class="label" data-lightbox-meta></p>
+      <p class="lightbox__text" data-lightbox-text></p>
+    </figcaption>
+  </figure>
+
+  <div class="lightbox__nav" data-lightbox-nav>
+    <button class="lightbox__button" type="button" data-lightbox-prev>
+      <span aria-hidden="true">←</span> Previous
+    </button>
+    <button class="lightbox__button" type="button" data-lightbox-next>
+      Next <span aria-hidden="true">→</span>
+    </button>
+  </div>
+</dialog>
+
+<script>
+  const dialog = document.querySelector<HTMLDialogElement>("[data-lightbox-dialog]");
+
+  if (dialog) {
+    const media = dialog.querySelector<HTMLElement>("[data-lightbox-media]")!;
+    const count = dialog.querySelector<HTMLElement>("[data-lightbox-count]")!;
+    const title = dialog.querySelector<HTMLElement>("[data-lightbox-title]")!;
+    const meta = dialog.querySelector<HTMLElement>("[data-lightbox-meta]")!;
+    const text = dialog.querySelector<HTMLElement>("[data-lightbox-text]")!;
+    const nav = dialog.querySelector<HTMLElement>("[data-lightbox-nav]")!;
+
+    let items: HTMLAnchorElement[] = [];
+    let index = 0;
+    let trigger: HTMLAnchorElement | null = null;
+
+    const show = (i: number) => {
+      index = (i + items.length) % items.length;
+      const link = items[index];
+      const { type, alt = "", poster } = link.dataset;
+
+      if (type === "video") {
+        const video = document.createElement("video");
+        video.src = link.href;
+        video.controls = true;
+        video.playsInline = true;
+        video.preload = "metadata";
+        if (poster) video.poster = poster;
+        if (alt) video.setAttribute("aria-label", alt);
+        media.replaceChildren(video);
+      } else {
+        const img = document.createElement("img");
+        img.src = link.href;
+        img.alt = alt;
+        media.replaceChildren(img);
+      }
+
+      title.textContent = link.dataset.title ?? "";
+      meta.textContent = link.dataset.meta ?? "";
+      text.textContent = link.dataset.text ?? "";
+      text.hidden = !link.dataset.text;
+      count.textContent = `${String(index + 1).padStart(2, "0")} / ${String(items.length).padStart(2, "0")}`;
+      nav.hidden = items.length < 2;
+    };
+
+    document.addEventListener("click", (event) => {
+      const link = (event.target as Element).closest<HTMLAnchorElement>("a[data-lightbox]");
+      if (!link) return;
+      event.preventDefault();
+      const group = link.closest("[data-lightbox-group]");
+      items = group ? [...group.querySelectorAll<HTMLAnchorElement>("a[data-lightbox]")] : [link];
+      trigger = link;
+      show(items.indexOf(link));
+      dialog.showModal();
+    });
+
+    dialog.querySelector("[data-lightbox-close]")?.addEventListener("click", () => dialog.close());
+    dialog.querySelector("[data-lightbox-prev]")?.addEventListener("click", () => show(index - 1));
+    dialog.querySelector("[data-lightbox-next]")?.addEventListener("click", () => show(index + 1));
+
+    dialog.addEventListener("keydown", (event) => {
+      if (items.length < 2) return;
+      if (event.key === "ArrowLeft") show(index - 1);
+      if (event.key === "ArrowRight") show(index + 1);
+    });
+
+    // A click on the backdrop lands on the dialog element itself.
+    dialog.addEventListener("click", (event) => {
+      if (event.target === dialog) dialog.close();
+    });
+
+    dialog.addEventListener("close", () => {
+      media.replaceChildren();
+      trigger?.focus();
+    });
+  }
+</script>
+
+<style>
+  .lightbox {
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    max-height: none;
+    margin: 0;
+    padding: var(--space-3) var(--margin);
+    border: 0;
+    background: transparent;
+    color: var(--ink);
+  }
+
+  .lightbox[open] {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    gap: var(--space-3);
+  }
+
+  .lightbox::backdrop {
+    background: color-mix(in srgb, var(--paper) 96%, transparent);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .lightbox[open] {
+      animation: lightbox-in var(--dur-ui) var(--ease);
+    }
+  }
+
+  @keyframes lightbox-in {
+    from {
+      opacity: 0;
+      transform: scale(0.98);
+    }
+  }
+
+  .lightbox__bar,
+  .lightbox__nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-3);
+  }
+
+  .lightbox__count {
+    font-weight: 400;
+  }
+
+  .lightbox__button {
+    min-height: 44px;
+    padding: 0 var(--space-3);
+    border: 1px solid var(--ink);
+    border-radius: 2px;
+    background: var(--paper);
+    color: var(--ink);
+    font: inherit;
+    font-size: var(--fs-small);
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color var(--dur-fast) var(--ease);
+  }
+
+  .lightbox__button:hover {
+    background: var(--paper-2);
+  }
+
+  .lightbox__nav[hidden],
+  .lightbox__text[hidden] {
+    display: none;
+  }
+
+  .lightbox__figure {
+    min-height: 0;
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: var(--space-3);
+    margin: 0;
+  }
+
+  .lightbox__media {
+    position: relative;
+    min-height: 0;
+  }
+
+  /* Absolute + inset 0 + auto margins: the media keeps its ratio and fits the box either way. */
+  .lightbox__media :global(img),
+  .lightbox__media :global(video) {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    border: 1px solid var(--rule);
+    background: var(--paper-2);
+  }
+
+  .lightbox__caption {
+    display: grid;
+    gap: var(--space-1);
+    max-width: var(--text-width);
+    margin-inline: auto;
+    text-align: center;
+  }
+
+  .lightbox__caption .label {
+    font-weight: 400;
+  }
+
+  .lightbox__title {
+    font-family: var(--ff-serif);
+    font-size: 1.625rem;
+    line-height: 1.1;
+  }
+
+  .lightbox__text {
+    font-size: var(--fs-small);
+    color: var(--ink-body);
+  }
+</style>
