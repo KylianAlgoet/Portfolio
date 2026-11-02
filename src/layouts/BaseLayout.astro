@@ -8,10 +8,43 @@ import "../styles/global.css";
 interface Props {
   title?: string;
   description?: string;
+  /** Path of this page's Open Graph image, from src/pages/og/. */
+  image?: string;
+  imageAlt?: string;
+  type?: "website" | "article";
+  /** Structured data for this page, merged with the site-wide Person. */
+  jsonLd?: Record<string, unknown>;
+  /** Keep the page out of search results (the 404). */
+  noindex?: boolean;
 }
 
-const { title, description = site.description } = Astro.props;
+const {
+  title,
+  description = site.description,
+  image = "/og/home.png",
+  imageAlt = `${site.name}, ${site.role}`,
+  type = "website",
+  jsonLd,
+  noindex = false,
+} = Astro.props;
 const pageTitle = title ? `${title} · ${site.name}` : `${site.name}: ${site.role}`;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+const imageUrl = new URL(image, Astro.site);
+
+const person = {
+  "@type": "Person",
+  "@id": new URL("/#person", Astro.site).href,
+  name: site.name,
+  jobTitle: site.role,
+  url: new URL("/", Astro.site).href,
+  homeLocation: { "@type": "Country", name: site.location },
+  alumniOf: { "@type": "CollegeOrUniversity", name: "Erasmushogeschool Brussel" },
+  sameAs: [site.github, site.linkedin],
+};
+const structuredData = {
+  "@context": "https://schema.org",
+  "@graph": [person, ...(jsonLd ? [jsonLd] : [])],
+};
 ---
 
 <!doctype html>
@@ -21,6 +54,19 @@ const pageTitle = title ? `${title} · ${site.name}` : `${site.name}: ${site.rol
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{pageTitle}</title>
     <meta name="description" content={description} />
+    {noindex ? <meta name="robots" content="noindex" /> : <link rel="canonical" href={canonical} />}
+    <meta property="og:type" content={type} />
+    <meta property="og:site_name" content={site.name} />
+    <meta property="og:locale" content="en" />
+    <meta property="og:title" content={title ?? pageTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={imageUrl} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={imageAlt} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script type="application/ld+json" set:html={JSON.stringify(structuredData)} />
     <meta name="color-scheme" content="light dark" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <Font cssVariable="--font-serif" preload />

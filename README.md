@@ -24,10 +24,12 @@ src/
   assets/               Images processed by astro:assets (one folder per project)
   components/           Reusable .astro components
   content/              Site content (Markdown/MDX/YAML), validated by src/content.config.ts
-  data/                 Site-wide constants (name, links, navigation)
+  data/                 Site-wide constants (name, links, navigation) and trick recordings
   layouts/              Page shells
-  pages/                Routes
-  styles/               tokens.css (design tokens) and global.css
+  lib/                  Content helpers, the SK8Sense detection port, OG image rendering
+  pages/                Routes, including og/ (social images) and robots.txt
+  scripts/deck/         The DeckForge 3D viewer, loaded on demand
+  styles/               tokens.css (design tokens), global.css and prose.css
 scripts/                Build-time checks
 ```
 
@@ -36,8 +38,17 @@ scripts/                Build-time checks
 - **A project:** add `src/content/work/<slug>.mdx` and its images in `src/assets/work/<slug>/`.
   The frontmatter schema is in `src/content.config.ts`.
 - **A Playground item:** add `src/content/playground/<slug>.md` (type `game`, `render` or `animation`).
+- **A trick recording:** add a CSV to `src/data/traces/` (see the README there).
 - **Unfinished content:** set `draft: true`. Drafts never reach the production build, and the
   build fails if the text `TODO(input)` ends up in `dist/`.
+
+## Deploying
+
+The site is fully static. Canonical URLs, Open Graph images and the sitemap need the public URL:
+
+- `SITE_URL`, if set (for a custom domain, e.g. `https://example.com`);
+- otherwise Vercel's production domain (`VERCEL_PROJECT_PRODUCTION_URL`), picked up automatically;
+- otherwise `http://localhost:4321` for local builds.
 
 ## Design
 

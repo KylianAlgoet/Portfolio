@@ -1,0 +1,98 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { RULES } from "../lib/trick-detection";
+import { getWork } from "../lib/content";
+
+const work = await getWork();
+---
+
+<BaseLayout title="Page not found" description="This page doesn't exist." noindex>
+  <section class="container missing" aria-labelledby="missing-title">
+    <p class="label missing__label">Error 404 · No trick detected</p>
+    <h1 id="missing-title" class="missing__title">This page didn't <em>land</em>.</h1>
+    <p class="missing__lead">The address may be mistyped, or the page has moved.</p>
+    <p class="missing__rule"><code>|gyro| ≤ {RULES.GYRO_MIN} °/s → no peak window → none</code></p>
+
+    <div class="missing__actions">
+      <a class="button button--primary" href="/">Back to the homepage</a>
+      <a class="button button--secondary" href="/#work">Selected work</a>
+    </div>
+
+    <ul class="missing__links">
+      {
+        work.map((entry) => (
+          <li>
+            <a href={`/work/${entry.id}`}>{entry.data.title}</a>
+            <span>{entry.data.indexSummary}</span>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+</BaseLayout>
+
+<style>
+  .missing {
+    display: grid;
+    gap: var(--space-4);
+    justify-items: start;
+    padding-top: clamp(var(--space-6), 8vw, var(--space-8));
+  }
+
+  .missing__label {
+    font-weight: 400;
+  }
+
+  .missing__title {
+    max-width: 14ch;
+    font-size: clamp(3.25rem, 2rem + 6vw, 7rem);
+    line-height: 0.95;
+    letter-spacing: -0.015em;
+  }
+
+  .missing__lead {
+    font-size: var(--fs-lead);
+    line-height: 1.5;
+  }
+
+  .missing__rule code {
+    font-family: var(--ff-mono);
+    font-size: 0.875rem;
+    color: var(--signal);
+  }
+
+  .missing__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    margin-top: var(--space-2);
+  }
+
+  .missing__links {
+    width: 100%;
+    max-width: var(--text-width);
+    margin: var(--space-6) 0 0;
+    padding: 0;
+    list-style: none;
+    border-top: 1px solid var(--ink);
+  }
+
+  .missing__links li {
+    display: grid;
+    gap: var(--space-1);
+    padding-block: var(--space-3);
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .missing__links a {
+    font-family: var(--ff-serif);
+    font-size: 1.625rem;
+    line-height: 1.1;
+    justify-self: start;
+  }
+
+  .missing__links span {
+    font-size: var(--fs-small);
+    color: var(--ink-2);
+  }
+</style>

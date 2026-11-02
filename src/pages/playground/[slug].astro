@@ -25,9 +25,25 @@ const gallery = await Promise.all(
   })),
 );
 const meta = `Game · ${data.tools.join(", ")} · ${data.year}`;
+
+const jsonLd = {
+  "@type": "VideoGame",
+  name: data.title,
+  description: data.summary,
+  url: new URL(Astro.url.pathname, Astro.site).href,
+  dateCreated: data.year,
+  author: { "@id": new URL("/#person", Astro.site).href },
+};
 ---
 
-<BaseLayout title={data.title} description={data.summary}>
+<BaseLayout
+  title={data.title}
+  description={data.summary}
+  image={`/og/playground/${entry.id}.png`}
+  imageAlt={`${data.title}: ${data.summary}`}
+  type="article"
+  jsonLd={jsonLd}
+>
   <article class="game">
     <header class="container game__header">
       <a class="label game__back" href="/playground">← Playground</a>

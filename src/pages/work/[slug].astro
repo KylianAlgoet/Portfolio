@@ -21,9 +21,27 @@ const { Content, headings } = await render(entry);
 const sections = headings.filter((h) => h.depth === 2);
 const isPortrait = data.cover.height > data.cover.width;
 const coverWidths = (isPortrait ? [280, 420, 560] : [640, 960, 1280, 1440]).filter((w) => w <= data.cover.width);
+
+const jsonLd = {
+  "@type": "SoftwareSourceCode",
+  name: data.title,
+  description: data.description,
+  url: new URL(Astro.url.pathname, Astro.site).href,
+  codeRepository: data.repo,
+  dateCreated: data.year,
+  keywords: data.stack.join(", "),
+  author: { "@id": new URL("/#person", Astro.site).href },
+};
 ---
 
-<BaseLayout title={data.title} description={data.description}>
+<BaseLayout
+  title={data.title}
+  description={data.description}
+  image={`/og/work/${entry.id}.png`}
+  imageAlt={`${data.title}: ${data.oneLiner}`}
+  type="article"
+  jsonLd={jsonLd}
+>
   <article class="case">
     <header class="container case__header">
       <a class="label case__back" href="/#work">← Selected work · {number} / {String(total).padStart(2, "0")}</a>

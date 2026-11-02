@@ -15,7 +15,7 @@ export const getStaticPaths = (async () => {
 const { items } = Astro.props;
 ---
 
-<BaseLayout title={playground.title} description={playground.intro}>
+<BaseLayout title={playground.title} description={playground.intro} image="/og/playground.png">
   <header class="container playground__header">
     <p class="label">Creative work · {String(items.length).padStart(2, "0")} items</p>
     <div class="grid playground__title-row">
