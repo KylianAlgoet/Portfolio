@@ -1,0 +1,100 @@
+---
+title: SK8Sense
+order: 2
+kicker: Hardware · Mobile · AI coaching
+year: "2026"
+oneLiner: "A connected skateboard coach: sensors on the board, rules on the chip, coaching in the app."
+summary: >-
+  A sensor module under the deck streams motion and foot pressure to a mobile app over Bluetooth Low
+  Energy. Tricks are detected with transparent rules on the board itself; Claude then turns the
+  measured session into short coaching cues.
+indexSummary: "A connected skateboard: ESP32 sensors, a React Native app and AI coaching."
+description: >-
+  How I built a connected skateboard coach: ESP32 sensors, rule-based trick detection on the board,
+  a React Native app and coaching generated with the Claude API.
+role: "Solo: hardware, firmware, app, design"
+context: Final Work, Erasmushogeschool Brussel
+stack: [ESP32, C++ (PlatformIO), NimBLE, React Native (Expo), Zustand, Firebase, Claude API]
+tags: [ESP32, BLE, React Native, Firebase, Claude API]
+repo: https://github.com/KylianAlgoet/Sk8Sense
+cover: ../../assets/work/sk8sense/home-a.png
+coverAlt: SK8Sense app home screen with a motion stability score, a coaching message and a button to start a session.
+coverCaption: The SK8Sense app home screen.
+built:
+  - ESP32 firmware that reads an MPU6050 motion sensor and four pressure sensors and streams JSON over BLE at around 100 Hz.
+  - A rule-based trick classifier for ollies, kickflips, heelflips and shove-its, running on the board.
+  - A React Native app with a live dashboard, practice mode, session summaries and history stored in Firebase.
+  - A 3D-printed PETG enclosure that mounts between the trucks.
+quote: The AI sits in the coaching layer, not the detection layer.
+facts:
+  - { label: Trick types, value: "5" }
+  - { label: Pressure zones, value: "4" }
+  - { label: BLE stream, value: ~100 Hz }
+  - { label: Status, value: Working prototype }
+specs:
+  - { label: Microcontroller + BLE, value: ESP32 }
+  - { label: Motion sensor, value: MPU6050 }
+  - { label: Pressure zones, value: "4" }
+  - { label: Sensor stream, value: ~100 Hz }
+  - { label: Trick types, value: "5" }
+  - { label: Enclosure, value: PETG }
+decisions:
+  - title: Rules, not a trained model, for detection
+    why: Rules are fast, explainable and tunable on a microcontroller, and I can show exactly why a trick was classified.
+    tradeoff: Only a handful of tricks; a model trained on real skate data is a next step.
+  - title: Detect on the board, not in the phone
+    why: The firmware sends its verdict along with the data, so the app logs what the board actually saw.
+  - title: A boost converter in the power path
+    why: The ESP32 board's regulator needs more voltage than a LiPo delivers, and Bluetooth dropped out on battery power. Adding an MT3608 boost converter fixed it.
+  - title: AI only after measurement
+    why: The app first turns rotation and landing data into plain verdicts, such as "under-rotated" or "harsh landing", and only then asks the model for a cue. The model doesn't get to invent its own reading of the numbers.
+limits:
+  - A working prototype, not a consumer product. It is built on perfboard and needs drop and water testing.
+  - Android only. iOS was out of scope.
+  - The pressure sensors add context but don't drive classification yet.
+  - The app calls the Claude API directly. A production version would route that call through a backend so no key ships in the app.
+next:
+  - A model trained on real skate data.
+  - A custom PCB instead of perfboard.
+  - A water-resistant enclosure.
+  - Video synced to sensor events.
+---
+
+## The question
+
+The technique behind a trick happens in a fraction of a second. A skater who films themselves can
+see that an attempt failed, but not why. I wanted to know whether the board itself could measure
+every attempt and turn that into feedback for the next one, without a coach standing next to you.
+
+## What I built
+
+- **A sensor module.** An ESP32 reads an MPU6050 (acceleration and rotation) and four
+  force-sensitive resistors under the grip tape: nose, heel, toe and tail. It runs on a LiPo with a
+  charger and boost converter, inside a PETG enclosure mounted between the trucks.
+- **Firmware.** Reads the sensors at around 100 Hz, classifies tricks with rules, and streams
+  compact JSON over Bluetooth Low Energy.
+- **A mobile app.** React Native with Expo: sign-in, board pairing, a live dashboard (pitch, roll,
+  impact, foot pressure), live sessions with a trick feed, session summaries, a learning and
+  practice flow, and history stored in Firestore.
+- **AI coaching.** After a trick or a session, the app turns the measurements into short coaching
+  cues with the Claude API.
+
+## How it works
+
+When the board's rotation rises above 70°/s, the firmware opens a short window. It records the peak
+rotation on each axis until the board settles or 480 ms pass, then checks the peaks against fixed
+thresholds:
+
+- **Flip:** rotation around the length axis of at least 220°/s, and at least 1.35× the pop axis.
+  The direction decides kickflip or heelflip.
+- **Shove-it:** vertical rotation of at least 170°/s, dominant over the other axes. The direction
+  decides backside or frontside.
+- **Ollie:** pop-axis rotation of at least 150°/s.
+
+## How I tested it
+
+I tested the hardware and app on the bench with the PlatformIO serial monitor and an Expo
+development build on Android, then in a real skate session with the live dashboard. Along the way I
+fixed pressure-sensor cross-talk, a sensor bus that dropped out under vibration (by slowing I²C to
+100 kHz) and a stale closure that froze the pitch and roll readouts. There is no automated test
+suite yet.

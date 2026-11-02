@@ -1,0 +1,111 @@
+---
+title: DeckForge AI
+order: 1
+kicker: Fullstack · Generative AI · 3D
+year: "2026"
+oneLiner: A self-trained, locally deployed generator for skateboard deck graphics, with a 3D preview.
+summary: >-
+  A text prompt becomes skateboard deck artwork in one of three trained styles, then appears on an
+  interactive 3D deck before anything is printed. It runs entirely on one laptop GPU: no cloud
+  inference, no third-party image API.
+indexSummary: Locally trained image generation, previewed on an interactive 3D skateboard deck.
+description: >-
+  How I trained three Stable Diffusion style adapters and built a local, tested fullstack app that
+  previews generated skateboard graphics on a 3D deck.
+role: "Solo: research, ML, backend, frontend"
+context: Bachelor final project, Erasmushogeschool Brussel
+stack: [Python, FastAPI, Pydantic, PyTorch, diffusers, React, TypeScript, Three.js]
+tags: [Python, FastAPI, React, Three.js, LoRA]
+repo: https://github.com/KylianAlgoet/Selftrained-and-deployed-AI-image-generator
+report:
+  label: Research report (PDF, 91 pages)
+  href: https://github.com/KylianAlgoet/Selftrained-and-deployed-AI-image-generator/blob/main/deliverables/DeckForge-AI-research-report.pdf
+cover: ../../assets/work/deckforge-ai/result-and-deck.png
+coverAlt: DeckForge interface with the prompt and style controls on the left and a generated decal mapped onto the 3D skateboard deck on the right.
+coverCaption: A generated decal, shown flat and mapped onto the 3D deck.
+built:
+  - Three Stable Diffusion 1.5 LoRA style adapters, trained on a 148-image dataset where every item has a recorded licence.
+  - A FastAPI service with upload validation, a single-flight generation lock and live progress telemetry.
+  - A React and TypeScript frontend with a Three.js deck preview that maps each result onto the board.
+  - 528 pytest, 183 Vitest and 38 Playwright tests, running in GitHub Actions CI.
+facts:
+  - { label: Trained style adapters, value: "3" }
+  - { label: Logged experiments, value: "40" }
+  - { label: Decision records, value: "17" }
+  - { label: VRAM budget, value: 8 GB }
+specs:
+  - { label: LoRA style adapters, value: "3" }
+  - { label: Training images, value: "148" }
+  - { label: Output, value: 512 × 1536 }
+  - { label: Per generation, value: ~12 s }
+  - { label: Experiments, value: "40" }
+  - { label: Decision records, value: "17" }
+decisions:
+  - title: Stable Diffusion 1.5 over SDXL
+    ref: DR-007
+    alternatives: SDXL; SD 2.1 was planned but never benchmarked because the repository was gated.
+    why: SDXL scored better under my rubric, but it doesn't leave room for a LoRA and reference conditioning in 8 GB.
+    tradeoff: I chose for feasibility, not image quality, and the write-up says so.
+  - title: IP-Adapter at 0.55 over img2img
+    ref: DR-008
+    why: In my sweeps, img2img either ignored the reference or reproduced it too closely.
+    tradeoff: I measured copy risk explicitly instead of assuming it.
+  - title: One adapter per style
+    ref: DR-010
+    why: Checkpoints were compared at fixed seeds, and two of the three styles were better at step 300 than at 600.
+    tradeoff: Three files to manage, but each style ships its best checkpoint.
+  - title: One API worker, on purpose
+    ref: DR-011
+    why: The generation lock is process-local, and a second pipeline doesn't fit. The stack leaves about 200 MiB of 8 GB spare.
+    tradeoff: One generation at a time, no queue.
+limits:
+  - "Prompt adherence is limited: complex, multi-object prompts are unreliable."
+  - The retro-poster style is a partial pass and weaker than the other two. I report it as such.
+  - One process and one generation at a time.
+  - Training isn't bit-reproducible on this stack, so the adapters are kept and verified as files.
+  - It runs locally only. There is no hosted demo.
+next:
+  - Make training reproducible by seeding every source of randomness from the start.
+  - Measure a second fine-tuning method next to LoRA.
+  - Design the dataset-size experiment properly, with equal training epochs, so it can answer the question it asked.
+  - With more VRAM, revisit SDXL and a single multi-style adapter.
+---
+
+## The question
+
+A skateboard customer wants a custom deck graphic but can't draw one, and stock artwork is generic.
+I wanted to find out whether a model trained and run on consumer hardware could turn a written
+description, and optionally a reference image, into usable deck art in a consistent style.
+
+The constraint shaped everything: one laptop GPU with 8 GB of VRAM, no cloud inference and no
+third-party image API.
+
+## What I built
+
+- **Three style adapters.** LoRA adapters for `ukiyo-e`, `minimal-geometric` and `retro-poster`,
+  trained on Stable Diffusion 1.5 using a 148-image dataset. Every image is public domain, CC0 or my
+  own work, and its licence is recorded in the manifest.
+- **A generation service.** FastAPI with one resident pipeline, upload validation for reference
+  images, a single-flight lock and live progress telemetry during denoising.
+- **A frontend with a 3D preview.** React, TypeScript and Three.js. You write a prompt, pick a style,
+  optionally add a reference and watch the progress, and the result lands on a 3D deck you can
+  rotate. You can also map your own artwork onto the deck without generating anything.
+
+I built it as a ladder of six prototypes: the 3D deck viewer first, then a base-model benchmark,
+reference conditioning, a LoRA smoke test, style learning and finally the integrated app.
+
+## How it works
+
+Prompt, style, an optional reference image, live denoising progress, the result on the deck, and a
+download of the PNG plus a JSON metadata sidecar. The first request loads the pipeline, which takes
+about 30 seconds. After that, a generation takes 12–13 seconds.
+
+## How I tested it
+
+528 pytest, 183 Vitest and 38 Playwright tests run in GitHub Actions on Windows, the platform the
+project was validated on. The browser tests drive a real WebGL context against a mocked API.
+
+No test loads the model. A green build shows that the code, the API contracts and the interface
+work. It says nothing about image quality. Real generations are evidenced separately, in the
+experiment registry and the GPU validation runs. I also ran the project from a clean clone, which
+surfaced five defects that a warm machine had hidden.

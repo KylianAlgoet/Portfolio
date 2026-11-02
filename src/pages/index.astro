@@ -1,23 +1,16 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { site } from "../data/site";
+import { hero } from "../data/home";
+import { getWork } from "../lib/content";
 
-const projects = [
-  {
-    number: "01",
-    title: "DeckForge AI",
-    href: "/work/deckforge-ai",
-    summary: "Locally trained image generation, previewed on an interactive 3D skateboard deck.",
-    tags: ["Python", "FastAPI", "React", "Three.js", "LoRA"],
-  },
-  {
-    number: "02",
-    title: "SK8Sense",
-    href: "/work/sk8sense",
-    summary: "A connected skateboard: ESP32 sensors, a React Native app and AI coaching.",
-    tags: ["ESP32", "BLE", "React Native", "Firebase", "Claude API"],
-  },
-];
+const projects = (await getWork()).map((entry, i) => ({
+  number: String(i + 1).padStart(2, "0"),
+  title: entry.data.title,
+  href: `/work/${entry.id}`,
+  summary: entry.data.indexSummary,
+  tags: entry.data.tags,
+}));
 ---
 
 <BaseLayout>
@@ -25,13 +18,8 @@ const projects = [
     <div class="grid hero__grid">
       <div class="hero__intro">
         <p class="label">{site.role} · {site.location}</p>
-        <h1 id="hero-title" class="hero__title">
-          I build software where AI, interfaces and <em>hardware</em> meet.
-        </h1>
-        <p class="hero__lead">
-          Recent Multimedia &amp; Creative Technology graduate from Erasmushogeschool Brussel. I'm looking for a junior
-          role as an AI engineer, software developer or fullstack developer.
-        </p>
+        <h1 id="hero-title" class="hero__title" set:html={hero.title} />
+        <p class="hero__lead">{hero.lead}</p>
         <div class="hero__actions">
           <a class="button button--primary" href="#work">View selected work</a>
           <a class="button button--secondary" href={site.cv} download>Download CV (PDF)</a>

@@ -1,0 +1,21 @@
+# "More on GitHub". Entries stay draft until Kylian confirms a one-line description.
+- id: morph3d-prototype
+  name: Morph3D-Prototype
+  url: https://github.com/KylianAlgoet/Morph3D-Prototype-KylianAlgoet
+  description: "TODO(input): confirm: An AI-powered, customizable text-to-3D generator prototype."
+  draft: true
+- id: skatetrickai
+  name: SkateTrickAI
+  url: https://github.com/KylianAlgoet/SkateTrickAI
+  description: "TODO(input): one line"
+  draft: true
+- id: liveskateparkheatmap
+  name: LiveSkateparkHeatmap
+  url: https://github.com/KylianAlgoet/LiveSkateparkHeatmap
+  description: "TODO(input): one line"
+  draft: true
+- id: aicharactermaker
+  name: AICharacterMaker
+  url: https://github.com/KylianAlgoet/AICharacterMaker
+  description: "TODO(input): one line"
+  draft: true

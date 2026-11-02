@@ -1,0 +1,10 @@
+- id: beersecret
+  company: BeerSecret
+  title: Software Development Intern
+  kind: Internship
+  period: Jan – Apr 2026
+  body: >-
+    I automated internal booking and operations workflows by connecting FareHarbor, Zapier and
+    Odoo, built pre- and post-experience email automations, and wrote handover documentation so the
+    team could keep running the flows after my internship.
+  tags: [FareHarbor, Zapier, Odoo, Email automation, Documentation]
