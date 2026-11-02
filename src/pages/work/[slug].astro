@@ -1,0 +1,397 @@
+---
+import type { GetStaticPaths } from "astro";
+import { Picture } from "astro:assets";
+import { render } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import FactStrip from "../../components/FactStrip.astro";
+import { getWork } from "../../lib/content";
+
+export const getStaticPaths = (async () => {
+  const work = await getWork();
+  return work.map((entry, i) => ({
+    params: { slug: entry.id },
+    props: { entry, next: work[(i + 1) % work.length], number: String(i + 1).padStart(2, "0"), total: work.length },
+  }));
+}) satisfies GetStaticPaths;
+
+const { entry, next, number, total } = Astro.props;
+const { data } = entry;
+const { Content, headings } = await render(entry);
+const sections = headings.filter((h) => h.depth === 2);
+const isPortrait = data.cover.height > data.cover.width;
+const coverWidths = (isPortrait ? [280, 420, 560] : [640, 960, 1280, 1440]).filter((w) => w <= data.cover.width);
+---
+
+<BaseLayout title={data.title} description={data.description}>
+  <article class="case">
+    <header class="container case__header">
+      <a class="label case__back" href="/#work">← Selected work · {number} / {String(total).padStart(2, "0")}</a>
+      <div class="grid case__title-row">
+        <h1 class="case__title">{data.title}</h1>
+        <p class="case__oneliner">{data.oneLiner}</p>
+      </div>
+
+      <dl class="grid case__meta">
+        <div class="case__meta-role">
+          <dt class="label">Role</dt>
+          <dd>{data.role}</dd>
+        </div>
+        <div class="case__meta-year">
+          <dt class="label">Year</dt>
+          <dd>{data.year}</dd>
+        </div>
+        <div class="case__meta-context">
+          <dt class="label">Context</dt>
+          <dd>{data.context}</dd>
+        </div>
+        <div class="case__meta-stack">
+          <dt class="label">Stack</dt>
+          <dd>{data.stack.join(", ")}</dd>
+        </div>
+        <div class="case__meta-links">
+          <dt class="visually-hidden">Links</dt>
+          <dd><a href={data.repo} rel="noopener">Repository ↗</a></dd>
+          {data.report && <dd><a href={data.report.href} rel="noopener">{data.report.label} ↗</a></dd>}
+        </div>
+      </dl>
+    </header>
+
+    <figure class="container case__cover">
+      <div class:list={["case__cover-frame", { "case__cover-frame--phone": isPortrait }]}>
+        <Picture
+          src={data.cover}
+          alt={data.coverAlt}
+          formats={["avif", "webp"]}
+          widths={coverWidths}
+          sizes={isPortrait ? "320px" : "(min-width: 1416px) 1320px, 100vw"}
+          loading="eager"
+          fetchpriority="high"
+        />
+      </div>
+      <figcaption class="label">Fig. 01 · {data.coverCaption}</figcaption>
+    </figure>
+
+    <div class="container case__specs">
+      <FactStrip facts={data.specs} size="lg" />
+    </div>
+
+    <div class="container grid case__body">
+      <nav class="case__toc" aria-label="On this page">
+        <p class="label">On this page</p>
+        <ol>
+          {
+            sections.map((s, i) => (
+              <li>
+                <a href={`#${s.slug}`}>
+                  <span class="label">0{i + 1}</span>
+                  {s.text}
+                </a>
+              </li>
+            ))
+          }
+        </ol>
+      </nav>
+
+      <div class="case__content prose">
+        <Content />
+      </div>
+    </div>
+
+    <nav class="container case__next" aria-label="Next project">
+      <a href={`/work/${next.id}`}>
+        <span class="label">Next project</span>
+        <span class="case__next-title">{next.data.title} <span aria-hidden="true">→</span></span>
+        <span class="case__next-summary">{next.data.indexSummary}</span>
+      </a>
+    </nav>
+  </article>
+</BaseLayout>
+
+<script>
+  // Highlight the table-of-contents entry for the section being read.
+  const links = new Map(
+    [...document.querySelectorAll<HTMLAnchorElement>(".case__toc a")].map((a) => [a.hash.slice(1), a]),
+  );
+  const observer = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        links.forEach((a) => a.removeAttribute("aria-current"));
+        links.get(entry.target.id)?.setAttribute("aria-current", "location");
+      }
+    },
+    { rootMargin: "-20% 0px -70% 0px" },
+  );
+  links.forEach((_, id) => {
+    const heading = document.getElementById(id);
+    if (heading) observer.observe(heading);
+  });
+</script>
+
+<style>
+  .case__header {
+    padding-top: clamp(var(--space-4), 4vw, var(--space-6));
+    display: grid;
+    gap: var(--space-5);
+  }
+
+  .case__back {
+    justify-self: start;
+    padding-block: 10px;
+    font-weight: 400;
+    text-decoration: none;
+  }
+
+  .case__title-row {
+    row-gap: var(--space-3);
+    align-items: end;
+  }
+
+  .case__title,
+  .case__oneliner {
+    grid-column: 1 / -1;
+  }
+
+  .case__title {
+    font-size: clamp(3.25rem, 2rem + 6vw, 7rem);
+    line-height: 0.95;
+    letter-spacing: -0.015em;
+  }
+
+  .case__oneliner {
+    font-size: clamp(1.125rem, 1rem + 0.6vw, 1.375rem);
+    line-height: 1.4;
+  }
+
+  .case__meta {
+    row-gap: var(--space-4);
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--ink);
+  }
+
+  .case__meta > div {
+    grid-column: span 6;
+    display: grid;
+    gap: var(--space-1);
+    align-content: start;
+    font-size: var(--fs-small);
+    line-height: 1.45;
+  }
+
+  .case__meta dt {
+    font-weight: 400;
+  }
+
+  .case__meta-links a {
+    display: inline-block;
+    padding-block: 4px;
+    font-weight: 500;
+  }
+
+  @media (min-width: 960px) {
+    .case__title {
+      grid-column: span 7;
+    }
+
+    .case__oneliner {
+      grid-column: 8 / span 5;
+      padding-bottom: 0.5rem;
+    }
+
+    .case__meta > .case__meta-role,
+    .case__meta > .case__meta-year,
+    .case__meta > .case__meta-links {
+      grid-column: span 2;
+    }
+
+    .case__meta > .case__meta-context,
+    .case__meta > .case__meta-stack {
+      grid-column: span 3;
+    }
+  }
+
+  .case__cover {
+    margin-top: var(--space-6);
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .case__cover-frame {
+    border: 1px solid var(--rule);
+    background: var(--paper-2);
+    overflow: hidden;
+  }
+
+  .case__cover-frame :global(img) {
+    width: 100%;
+    height: auto;
+  }
+
+  .case__cover-frame--phone {
+    display: flex;
+    justify-content: center;
+    padding: var(--space-6) var(--space-4) 0;
+    max-height: 640px;
+  }
+
+  .case__cover-frame--phone :global(img) {
+    width: min(320px, 72%);
+    border-radius: 22px 22px 0 0;
+    object-fit: cover;
+    object-position: top;
+  }
+
+  .case__cover figcaption {
+    font-weight: 400;
+  }
+
+  .case__specs {
+    margin-top: var(--space-5);
+  }
+
+  .case__body {
+    margin-top: var(--section-gap);
+    align-items: start;
+  }
+
+  .case__toc {
+    display: none;
+  }
+
+  .case__content {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+
+  @media (min-width: 1200px) {
+    .case__toc {
+      display: grid;
+      gap: var(--space-2);
+      grid-column: span 3;
+      position: sticky;
+      top: calc(var(--header-height) + var(--space-4));
+    }
+
+    .case__content {
+      grid-column: 5 / span 8;
+    }
+  }
+
+  .case__toc p {
+    padding-bottom: var(--space-2);
+    border-bottom: 1px solid var(--ink);
+  }
+
+  .case__toc ol {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .case__toc a {
+    display: flex;
+    gap: var(--space-3);
+    align-items: baseline;
+    padding-block: 8px;
+    color: var(--ink-2);
+    font-size: var(--fs-small);
+    text-decoration: none;
+  }
+
+  .case__toc a:hover,
+  .case__toc a[aria-current] {
+    color: var(--ink);
+  }
+
+  .case__toc a[aria-current] {
+    font-weight: 500;
+  }
+
+  .case__toc a[aria-current] .label {
+    color: var(--signal);
+  }
+
+  .case__next {
+    margin-top: var(--section-gap);
+  }
+
+  .case__next a {
+    display: grid;
+    gap: var(--space-3);
+    padding-top: var(--space-5);
+    border-top: 1px solid var(--ink);
+    text-decoration: none;
+  }
+
+  .case__next a:hover {
+    color: var(--ink);
+  }
+
+  .case__next-title {
+    font-family: var(--ff-serif);
+    font-size: var(--fs-h1);
+    line-height: 1;
+  }
+
+  .case__next a:hover .case__next-title {
+    text-decoration: underline 2px var(--signal);
+    text-underline-offset: 0.1em;
+  }
+
+  .case__next-summary {
+    color: var(--ink-2);
+  }
+
+  /* Prose inside the MDX body */
+
+  .prose > :global(h2) {
+    margin-top: var(--space-8);
+    counter-increment: section;
+    scroll-margin-top: calc(var(--header-height) + var(--space-4));
+  }
+
+  .prose > :global(h2:first-child) {
+    margin-top: 0;
+  }
+
+  .prose > :global(h2::before) {
+    content: counter(section, decimal-leading-zero);
+    display: block;
+    margin-bottom: var(--space-2);
+    font-family: var(--ff-mono);
+    font-size: var(--fs-label);
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    color: var(--ink-2);
+  }
+
+  .prose {
+    counter-reset: section;
+  }
+
+  .prose > :global(p),
+  .prose > :global(ul) {
+    max-width: var(--text-width);
+    margin-top: var(--space-4);
+    color: var(--ink-body);
+  }
+
+  .prose > :global(ul) {
+    padding-left: 1.1em;
+    display: grid;
+    gap: var(--space-3);
+  }
+
+  .prose :global(strong) {
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  .prose :global(code) {
+    font-family: var(--ff-mono);
+    font-size: 0.9em;
+    padding: 0.1em 0.3em;
+    background: var(--paper-2);
+    border-radius: 2px;
+  }
+</style>

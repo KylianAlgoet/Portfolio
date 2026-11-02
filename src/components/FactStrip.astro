@@ -2,17 +2,25 @@
 interface Props {
   facts: { label: string; value: string }[];
   size?: "md" | "lg";
-  /** Columns from 640px up; defaults to one column per fact. */
+  /** Columns from 960px up; defaults to one column per fact. */
   columns?: number;
+  /** Columns from 640px to 959px; defaults to at most three. */
+  columnsMd?: number;
 }
 
 const { facts, size = "md", columns = facts.length } = Astro.props;
+const columnsMd = Astro.props.columnsMd ?? Math.min(columns, 3);
 ---
 
-<dl class:list={["facts", `facts--${size}`]} style={`--count: ${columns}`}>
+<dl class:list={["facts", `facts--${size}`]} style={`--count: ${columns}; --count-md: ${columnsMd}`}>
   {
     facts.map((fact, i) => (
-      <div class:list={["facts__item", { "facts__item--row-start": i % columns === 0 }]}>
+      <div
+        class:list={[
+          "facts__item",
+          { "facts__item--start-md": i % columnsMd === 0, "facts__item--start-lg": i % columns === 0 },
+        ]}
+      >
         <dt class="label">{fact.label}</dt>
         <dd>{fact.value}</dd>
       </div>
@@ -51,7 +59,7 @@ const { facts, size = "md", columns = facts.length } = Astro.props;
 
   @media (min-width: 640px) {
     .facts {
-      grid-template-columns: repeat(var(--count), minmax(0, 1fr));
+      grid-template-columns: repeat(var(--count-md), minmax(0, 1fr));
     }
 
     .facts__item {
@@ -59,7 +67,24 @@ const { facts, size = "md", columns = facts.length } = Astro.props;
       border-left: 1px solid var(--rule);
     }
 
-    .facts__item--row-start {
+    .facts__item--start-md {
+      padding-left: 0;
+      border-left: 0;
+    }
+  }
+
+  @media (min-width: 960px) {
+    .facts {
+      grid-template-columns: repeat(var(--count), minmax(0, 1fr));
+    }
+
+    .facts__item,
+    .facts__item--start-md {
+      padding-left: var(--space-3);
+      border-left: 1px solid var(--rule);
+    }
+
+    .facts__item--start-lg {
       padding-left: 0;
       border-left: 0;
     }

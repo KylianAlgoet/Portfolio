@@ -1,0 +1,55 @@
+---
+interface Props {
+  limits: string[];
+  next: string[];
+}
+
+const { limits, next } = Astro.props;
+---
+
+<div class="limits">
+  <div class="limits__col" data-reveal>
+    <h3 class="label">Limits</h3>
+    <ul>{limits.map((item) => <li>{item}</li>)}</ul>
+  </div>
+  <div class="limits__col" data-reveal>
+    <h3 class="label">Next steps</h3>
+    <ul>{next.map((item) => <li>{item}</li>)}</ul>
+  </div>
+</div>
+
+<style>
+  .limits {
+    display: grid;
+    gap: var(--space-5);
+    margin-top: var(--space-5);
+  }
+
+  @media (min-width: 640px) {
+    .limits {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--gutter);
+    }
+  }
+
+  .limits__col {
+    display: grid;
+    gap: var(--space-3);
+    align-content: start;
+  }
+
+  .limits ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border-top: 1px solid var(--ink);
+  }
+
+  .limits li {
+    padding-block: var(--space-3);
+    border-bottom: 1px solid var(--rule);
+    font-size: var(--fs-small);
+    line-height: 1.5;
+    color: var(--ink-body);
+  }
+</style>

@@ -1,0 +1,67 @@
+---
+import { Picture } from "astro:assets";
+import type { ImageMetadata } from "astro";
+
+interface Props {
+  src: ImageMetadata;
+  alt: string;
+  caption: string;
+  number?: string;
+  /** "wide" breaks out of the text column on desktop. */
+  width?: "text" | "wide";
+}
+
+const { src, alt, caption, number, width = "wide" } = Astro.props;
+const isPortrait = src.height > src.width;
+const widths = (isPortrait ? [280, 420, 560] : [640, 960, 1280, 1440, 1960]).filter((w) => w <= src.width);
+---
+
+<figure class:list={["figure", `figure--${width}`, { "figure--phone": isPortrait }]}>
+  <div class="figure__frame">
+    <Picture
+      src={src}
+      alt={alt}
+      formats={["avif", "webp"]}
+      widths={widths}
+      sizes={isPortrait ? "280px" : width === "wide" ? "(min-width: 960px) 66vw, 100vw" : "(min-width: 960px) 680px, 100vw"}
+    />
+  </div>
+  <figcaption class="label">
+    {number && <>Fig. {number} · </>}{caption}
+  </figcaption>
+</figure>
+
+<style>
+  .figure {
+    display: grid;
+    gap: var(--space-2);
+    margin-block: var(--space-6);
+  }
+
+  .figure__frame {
+    border: 1px solid var(--rule);
+    background: var(--paper-2);
+    overflow: hidden;
+  }
+
+  .figure__frame :global(img) {
+    width: 100%;
+    height: auto;
+  }
+
+  .figure--phone .figure__frame {
+    display: flex;
+    justify-content: center;
+    padding: var(--space-5) var(--space-4) 0;
+  }
+
+  .figure--phone .figure__frame :global(img) {
+    width: min(280px, 70%);
+    border-radius: 20px 20px 0 0;
+  }
+
+  .figure figcaption {
+    font-weight: 400;
+    line-height: 1.5;
+  }
+</style>

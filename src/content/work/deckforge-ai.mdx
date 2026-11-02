@@ -71,6 +71,14 @@ next:
   - With more VRAM, revisit SDXL and a single multi-style adapter.
 ---
 
+import DecisionGrid from "../../components/case/DecisionGrid.astro";
+import LimitsNext from "../../components/case/LimitsNext.astro";
+import Figure from "../../components/case/Figure.astro";
+import orientation from "../../assets/work/deckforge-ai/p0-orientation.png";
+import denoising from "../../assets/work/deckforge-ai/ui-denoising.jpg";
+import uploadOwn from "../../assets/work/deckforge-ai/ui-upload-own-decal.jpg";
+import orbited from "../../assets/work/deckforge-ai/deck-orbited.png";
+
 ## The question
 
 A skateboard customer wants a custom deck graphic but can't draw one, and stock artwork is generic.
@@ -94,11 +102,45 @@ third-party image API.
 I built it as a ladder of six prototypes: the 3D deck viewer first, then a base-model benchmark,
 reference conditioning, a LoRA smoke test, style learning and finally the integrated app.
 
+<Figure
+  src={orientation}
+  number="02"
+  alt="Prototype 0: the first 3D deck in the browser, with a test decal showing the correct nose and tail orientation."
+  caption="Prototype 0, built first: the deck viewer, before any AI existed."
+/>
+
+## Key decisions
+
+Every choice below is backed by a logged experiment or a decision record in the repository.
+
+<DecisionGrid decisions={frontmatter.decisions} />
+
 ## How it works
 
 Prompt, style, an optional reference image, live denoising progress, the result on the deck, and a
 download of the PNG plus a JSON metadata sidecar. The first request loads the pipeline, which takes
 about 30 seconds. After that, a generation takes 12–13 seconds.
+
+<Figure
+  src={denoising}
+  number="03"
+  alt="DeckForge while generating: a progress panel reports the current denoising step next to the 3D deck."
+  caption="Live denoising progress, reported without blocking the GPU."
+/>
+
+<Figure
+  src={orbited}
+  number="04"
+  alt="The 3D deck rotated to an angle, with the generated decal following the board's shape."
+  caption="The preview is a live WebGL scene, not a static mockup."
+/>
+
+<Figure
+  src={uploadOwn}
+  number="05"
+  alt="DeckForge showing a user's own uploaded artwork mapped onto the deck."
+  caption="The upload path: your own artwork on the deck, no generation needed."
+/>
 
 ## How I tested it
 
@@ -109,3 +151,7 @@ No test loads the model. A green build shows that the code, the API contracts an
 work. It says nothing about image quality. Real generations are evidenced separately, in the
 experiment registry and the GPU validation runs. I also ran the project from a clean clone, which
 surfaced five defects that a warm machine had hidden.
+
+## Limits and next steps
+
+<LimitsNext limits={frontmatter.limits} next={frontmatter.next} />

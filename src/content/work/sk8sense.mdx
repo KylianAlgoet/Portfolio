@@ -60,6 +60,9 @@ next:
   - Video synced to sensor events.
 ---
 
+import DecisionGrid from "../../components/case/DecisionGrid.astro";
+import LimitsNext from "../../components/case/LimitsNext.astro";
+
 ## The question
 
 The technique behind a trick happens in a fraction of a second. A skater who films themselves can
@@ -78,6 +81,12 @@ every attempt and turn that into feedback for the next one, without a coach stan
   practice flow, and history stored in Firestore.
 - **AI coaching.** After a trick or a session, the app turns the measurements into short coaching
   cues with the Claude API.
+
+## Key decisions
+
+Each of these came out of building and testing the prototype.
+
+<DecisionGrid decisions={frontmatter.decisions} />
 
 ## How it works
 
@@ -98,3 +107,7 @@ development build on Android, then in a real skate session with the live dashboa
 fixed pressure-sensor cross-talk, a sensor bus that dropped out under vibration (by slowing I²C to
 100 kHz) and a stale closure that froze the pitch and roll readouts. There is no automated test
 suite yet.
+
+## Limits and next steps
+
+<LimitsNext limits={frontmatter.limits} next={frontmatter.next} />

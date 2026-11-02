@@ -1,0 +1,100 @@
+---
+interface Decision {
+  title: string;
+  ref?: string;
+  alternatives?: string;
+  why: string;
+  tradeoff?: string;
+}
+
+interface Props {
+  decisions: Decision[];
+}
+
+const { decisions } = Astro.props;
+---
+
+<ol class="decisions">
+  {
+    decisions.map((d, i) => (
+      <li class="decision" data-reveal>
+        <p class="label">
+          Decision 0{i + 1}
+          {d.ref && <> · {d.ref}</>}
+        </p>
+        <h3 class="decision__title">{d.title}</h3>
+        <dl>
+          {d.alternatives && (
+            <div>
+              <dt>Alternatives</dt>
+              <dd>{d.alternatives}</dd>
+            </div>
+          )}
+          <div>
+            <dt>Why</dt>
+            <dd>{d.why}</dd>
+          </div>
+          {d.tradeoff && (
+            <div>
+              <dt>Trade-off</dt>
+              <dd>{d.tradeoff}</dd>
+            </div>
+          )}
+        </dl>
+      </li>
+    ))
+  }
+</ol>
+
+<style>
+  .decisions {
+    margin: var(--space-5) 0 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: var(--space-3);
+  }
+
+  @media (min-width: 640px) {
+    .decisions {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  .decision {
+    display: grid;
+    gap: var(--space-3);
+    align-content: start;
+    padding: var(--space-4);
+    background: var(--paper-2);
+    border: 1px solid var(--rule);
+  }
+
+  .decision__title {
+    font-family: var(--ff-serif);
+    font-size: 1.75rem;
+    font-weight: 400;
+    line-height: 1.1;
+  }
+
+  .decision dl {
+    display: grid;
+    gap: var(--space-2);
+    font-size: var(--fs-small);
+    line-height: 1.5;
+  }
+
+  .decision dt {
+    display: inline;
+    font-weight: 600;
+  }
+
+  .decision dt::after {
+    content: ": ";
+  }
+
+  .decision dd {
+    display: inline;
+    color: var(--ink-body);
+  }
+</style>
