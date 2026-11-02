@@ -11,6 +11,7 @@ import Experience from "../components/home/Experience.astro";
 import PlaygroundTeaser from "../components/home/PlaygroundTeaser.astro";
 import About from "../components/home/About.astro";
 import Contact from "../components/home/Contact.astro";
+import TraceStrip from "../components/trace/TraceStrip.astro";
 
 const entries = await getWork();
 const projects = entries.map((entry, i) => ({
@@ -59,6 +60,8 @@ const projects = entries.map((entry, i) => ({
           }
         </ul>
       </nav>
+
+      <TraceStrip />
     </div>
   </section>
 
@@ -100,8 +103,10 @@ const projects = entries.map((entry, i) => ({
     grid-column: 1 / -1;
   }
 
+  /* On phones the trace strip sits between the intro and the index (see TraceStrip). */
   .hero__index {
     grid-column: 1 / -1;
+    order: 2;
   }
 
   @media (min-width: 960px) {
@@ -111,6 +116,7 @@ const projects = entries.map((entry, i) => ({
 
     .hero__index {
       grid-column: 9 / span 4;
+      order: 0;
       padding-top: var(--space-1);
     }
   }

@@ -62,6 +62,7 @@ next:
 
 import DecisionGrid from "../../components/case/DecisionGrid.astro";
 import LimitsNext from "../../components/case/LimitsNext.astro";
+import TrickTrace from "../../components/trace/TrickTrace.astro";
 
 ## The question
 
@@ -91,14 +92,18 @@ Each of these came out of building and testing the prototype.
 ## How it works
 
 When the board's rotation rises above 70°/s, the firmware opens a short window. It records the peak
-rotation on each axis until the board settles or 480 ms pass, then checks the peaks against fixed
-thresholds:
+rotation on each axis until the board has been calm for 80 ms or 480 ms have passed, then checks the
+peaks against fixed thresholds, in this order:
 
+- **Shove-it:** vertical rotation of at least 170°/s and at least 1.25× the pop axis, while the
+  flip axis stays below 220°/s. The direction decides backside or frontside.
 - **Flip:** rotation around the length axis of at least 220°/s, and at least 1.35× the pop axis.
   The direction decides kickflip or heelflip.
-- **Shove-it:** vertical rotation of at least 170°/s, dominant over the other axes. The direction
-  decides backside or frontside.
 - **Ollie:** pop-axis rotation of at least 150°/s.
+
+After a trick, the board ignores motion for 400 ms so a landing isn't counted as a second trick.
+
+<TrickTrace number="02" />
 
 ## How I tested it
 

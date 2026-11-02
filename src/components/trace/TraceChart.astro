@@ -1,0 +1,319 @@
+---
+import { RULES } from "../../lib/trick-detection";
+import type { Series } from "../../lib/traces";
+
+// The plot itself: absolute rotation rates against time, the firmware thresholds as dashed
+// lines and the peak window as a band. The SVG stretches to the box; every piece of text is
+// HTML on top of it, so labels stay readable at any width.
+
+interface Props {
+  series: Series[];
+  duration: number;
+  window?: { start: number; end: number };
+  peak?: { t: number; value: number };
+  /** Samples for scrubbing; leave out for the schematic. */
+  scrub?: { label: string; samples: [number, number, number, number][]; start: number };
+  schematic?: boolean;
+}
+
+const { series, duration, window, peak, scrub, schematic = false } = Astro.props;
+
+const maxValue = Math.max(...series.flatMap((s) => s.points.map(([, v]) => Math.abs(v))), RULES.FLIP_GX_MIN);
+// Headroom above the highest peak keeps its label clear of the window label.
+const yMax = Math.max(300, Math.ceil((maxValue * 1.3) / 100) * 100);
+const x = (t: number) => (t / duration) * 1000;
+const y = (v: number) => 100 - (Math.abs(v) / yMax) * 100;
+const pct = (n: number) => `${Math.min(100, Math.max(0, n)).toFixed(2)}%`;
+
+const thresholds = [
+  { value: RULES.FLIP_GX_MIN, label: "Flip", below: false },
+  { value: RULES.SHUV_GZ_MIN, label: "Shove-it", below: false },
+  { value: RULES.OLLIE_GY_MIN, label: "Ollie", below: true },
+];
+
+const tickStep = duration > 1600 ? 500 : 250;
+const ticks = Array.from({ length: Math.floor(duration / tickStep) + 1 }, (_, i) => i * tickStep);
+---
+
+<div
+  class:list={["chart", { "chart--schematic": schematic }]}
+  data-chart
+  data-duration={duration}
+  data-label={scrub?.label}
+  data-samples={scrub ? JSON.stringify(scrub.samples) : undefined}
+  data-start={scrub?.start}
+>
+  <div class="chart__plot">
+    <svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+      {
+        window && (
+          <rect class="chart__window" x={x(window.start)} y="0" width={Math.max(2, x(window.end) - x(window.start))} height="100" />
+        )
+      }
+      <line class="chart__base" x1="0" x2="1000" y1="100" y2="100" />
+      {thresholds.map((th) => <line class="chart__threshold" x1="0" x2="1000" y1={y(th.value)} y2={y(th.value)} />)}
+      <g class="chart__lines">
+        {
+          series.map((s) => (
+            <polyline
+              class:list={["chart__line", `chart__line--${s.key}`, { "is-decisive": s.decisive }]}
+              points={s.points.map(([t, v]) => `${x(t).toFixed(1)},${y(v).toFixed(2)}`).join(" ")}
+            />
+          ))
+        }
+      </g>
+      <line class="chart__cursor" x1="0" x2="0" y1="0" y2="100" data-cursor />
+    </svg>
+
+    {
+      thresholds.map((th) => (
+        <span class:list={["label chart__tlabel", { "chart__tlabel--below": th.below }]} style={`top: ${pct(y(th.value))}`}>
+          {th.label} {th.value}
+        </span>
+      ))
+    }
+    {
+      window && (
+        <span class="label chart__wlabel" style={`left: ${pct(x(window.start) / 10)}`}>
+          Peak window{schematic ? "" : ` · ${Math.round(window.end - window.start)} ms`}
+        </span>
+      )
+    }
+    {
+      peak && (
+        <span class="label chart__peak" style={`left: ${pct(x(peak.t) / 10)}; top: ${pct(y(peak.value))}`}>
+          {Math.round(Math.abs(peak.value))} °/s
+        </span>
+      )
+    }
+  </div>
+
+  <div class="chart__axis" aria-hidden="true">
+    {
+      ticks.map((t) => (
+        <span class="label" style={`left: ${pct(x(t) / 10)}`}>
+          {t}
+        </span>
+      ))
+    }
+    <span class="label chart__unit">ms</span>
+  </div>
+
+  {scrub && <p class="label chart__readout" data-readout hidden></p>}
+</div>
+
+<style>
+  .chart {
+    position: relative;
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .chart__plot {
+    position: relative;
+    height: clamp(200px, 32vw, 300px);
+    border-left: 1px solid var(--rule);
+  }
+
+  .chart[data-scrubbable] .chart__plot {
+    cursor: crosshair;
+    touch-action: pan-y;
+  }
+
+  .chart:focus-visible {
+    outline: 2px solid var(--signal);
+    outline-offset: 6px;
+  }
+
+  svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+
+  svg * {
+    vector-effect: non-scaling-stroke;
+  }
+
+  .chart__window {
+    fill: var(--paper-2);
+  }
+
+  .chart__base {
+    stroke: var(--ink);
+    stroke-width: 1;
+  }
+
+  .chart__threshold {
+    stroke: var(--ink-2);
+    stroke-width: 1;
+    stroke-dasharray: 3 4;
+  }
+
+  .chart__line {
+    fill: none;
+    stroke: var(--ink-2);
+    stroke-width: 1.25;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+  }
+
+  .chart__line--gy {
+    stroke-dasharray: 6 3;
+  }
+
+  .chart__line--gz {
+    stroke-dasharray: 1.5 3;
+  }
+
+  .chart__line.is-decisive {
+    stroke: var(--signal);
+    stroke-width: 2.25;
+  }
+
+  .chart__cursor {
+    stroke: var(--ink);
+    stroke-width: 1;
+  }
+
+  .chart:not([data-scrubbable]) .chart__cursor {
+    display: none;
+  }
+
+  /* Text over the plot */
+
+  .chart__tlabel,
+  .chart__wlabel,
+  .chart__peak {
+    position: absolute;
+    font-weight: 400;
+    line-height: 1;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  .chart__tlabel {
+    right: 0;
+    transform: translateY(calc(-100% - 4px));
+    color: var(--ink-2);
+  }
+
+  .chart__tlabel--below {
+    transform: translateY(4px);
+  }
+
+  .chart__wlabel {
+    top: 6px;
+    padding-left: 6px;
+  }
+
+  .chart__peak {
+    transform: translate(-50%, calc(-100% - 8px));
+    padding: 2px 4px;
+    background: var(--paper);
+    color: var(--signal);
+    font-weight: 500;
+  }
+
+  .chart__axis {
+    position: relative;
+    height: 1.25em;
+  }
+
+  .chart__axis .label {
+    position: absolute;
+    top: 0;
+    transform: translateX(-50%);
+    font-weight: 400;
+    color: var(--ink-2);
+  }
+
+  .chart__axis .label:first-child {
+    transform: none;
+  }
+
+  .chart__axis .chart__unit {
+    right: 0;
+    left: auto;
+    transform: none;
+  }
+
+  .chart__readout {
+    min-height: 1.5em;
+    white-space: pre-wrap;
+    font-weight: 400;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Draw the lines in once, left to right, when the chart scrolls into view. */
+  @media (prefers-reduced-motion: no-preference) {
+    :global(.js [data-reveal]) .chart__lines {
+      clip-path: inset(0 100% 0 0);
+      transition: clip-path 900ms var(--ease);
+    }
+
+    :global(.js [data-reveal].is-visible) .chart__lines {
+      clip-path: inset(0 0 0 0);
+    }
+  }
+</style>
+
+<script>
+  // Scrubbing: pointer or arrow keys move a cursor through the samples.
+  document.querySelectorAll<HTMLElement>("[data-chart][data-samples]").forEach((chart) => {
+    const samples: [number, number, number, number][] = JSON.parse(chart.dataset.samples!);
+    const duration = Number(chart.dataset.duration);
+    const plot = chart.querySelector<HTMLElement>(".chart__plot")!;
+    const cursor = chart.querySelector<SVGLineElement>("[data-cursor]")!;
+    const readout = chart.querySelector<HTMLElement>("[data-readout]")!;
+    const fmt = (v: number) => String(Math.round(Math.abs(v))).padStart(3, " ");
+    let index = 0;
+
+    chart.dataset.scrubbable = "";
+    chart.tabIndex = 0;
+    chart.setAttribute("role", "slider");
+    chart.setAttribute("aria-label", `Scrub through the ${chart.dataset.label} recording`);
+    chart.setAttribute("aria-valuemin", "0");
+    chart.setAttribute("aria-valuemax", String(duration));
+    readout.hidden = false;
+
+    const set = (i: number) => {
+      index = Math.max(0, Math.min(samples.length - 1, i));
+      const [t, gx, gy, gz] = samples[index];
+      const px = (t / duration) * 1000;
+      cursor.setAttribute("x1", String(px));
+      cursor.setAttribute("x2", String(px));
+      const text = `t ${t} ms · |gx| ${fmt(gx)} · |gy| ${fmt(gy)} · |gz| ${fmt(gz)} °/s`;
+      readout.textContent = text;
+      chart.setAttribute("aria-valuenow", String(t));
+      chart.setAttribute("aria-valuetext", text);
+    };
+
+    const nearest = (clientX: number) => {
+      const box = plot.getBoundingClientRect();
+      const t = ((clientX - box.left) / box.width) * duration;
+      let best = 0;
+      samples.forEach(([st], i) => {
+        if (Math.abs(st - t) < Math.abs(samples[best][0] - t)) best = i;
+      });
+      return best;
+    };
+
+    plot.addEventListener("pointermove", (event) => set(nearest(event.clientX)));
+    plot.addEventListener("pointerdown", (event) => set(nearest(event.clientX)));
+
+    chart.addEventListener("keydown", (event) => {
+      const step = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1, PageUp: 10, PageDown: -10 }[event.key];
+      if (step) set(index + step);
+      else if (event.key === "Home") set(0);
+      else if (event.key === "End") set(samples.length - 1);
+      else return;
+      event.preventDefault();
+    });
+
+    // Start on the sample the readout matters most for: the decisive peak, if there is one.
+    set(Number(chart.dataset.start ?? 0));
+  });
+</script>

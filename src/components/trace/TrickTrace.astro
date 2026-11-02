@@ -1,0 +1,398 @@
+---
+import TraceChart from "./TraceChart.astro";
+import { getRecordings, type Series } from "../../lib/traces";
+import { RULES, TRICK_NAMES, detectTricks, type Sample } from "../../lib/trick-detection";
+
+// The Trick Trace: SK8Sense gyro data drawn against the firmware's own detection rules.
+// With recordings in src/data/traces/ it shows real data with scrubbing and a data table.
+// Without them it falls back to a schematic that is labelled as such.
+
+interface Props {
+  number?: string;
+}
+
+const { number } = Astro.props;
+const recordings = getRecordings();
+const axes = ["gx", "gy", "gz"] as const;
+const axisNames = { gx: "flip axis", gy: "pop axis", gz: "shove-it axis" };
+
+// Schematic: an idealised flip shape, run through the same detection so the band and the
+// verdict follow the real rules. It is never shown as data: no values, no table, no scrubbing.
+const bump = (t: number, centre: number, width: number, height: number) =>
+  height * Math.exp(-(((t - centre) / width) ** 2));
+const schematicSamples: Sample[] = Array.from({ length: 81 }, (_, i) => {
+  const t = i * 10;
+  return { t, gx: bump(t, 360, 70, 430), gy: bump(t, 300, 60, 120), gz: bump(t, 380, 90, 40) };
+});
+const schematicWindow = detectTricks(schematicSamples).find((d) => d.trick !== "none");
+
+const panels = recordings.map((rec) => {
+  const d = rec.detection;
+  const duration = rec.samples.at(-1)!.t;
+  const series: Series[] = axes.map((key) => ({
+    key,
+    points: rec.samples.map((s) => [s.t, s[key]] as [number, number]),
+    decisive: d?.axis === key,
+  }));
+  const peakSample = d?.axis
+    ? rec.samples.reduce((best, s) =>
+        s.t >= d.start && s.t <= d.end && Math.abs(s[d.axis!]) > Math.abs(best[d.axis!]) ? s : best,
+      )
+    : undefined;
+  const verdict = d ? TRICK_NAMES[d.trick] : "No window opened";
+  const description =
+    `Recorded ${rec.attempted.toLowerCase()}, ${rec.samples.length} samples over ${duration} ms. ` +
+    (d
+      ? `The peak window ran from ${d.start} to ${d.end} ms with peaks of |gx| ${Math.round(Math.abs(d.peak.gx))}, ` +
+        `|gy| ${Math.round(Math.abs(d.peak.gy))} and |gz| ${Math.round(Math.abs(d.peak.gz))} °/s. ${d.rule}, so the firmware rules say: ${verdict}.`
+      : "The rotation never rose above the threshold that opens a window.");
+
+  return {
+    rec,
+    d,
+    duration,
+    series,
+    verdict,
+    description,
+    peak: d?.axis && peakSample ? { t: peakSample.t, value: peakSample[d.axis] } : undefined,
+    start: peakSample ? rec.samples.indexOf(peakSample) : 0,
+  };
+});
+---
+
+<figure class="trace" data-reveal data-trace>
+  <div class="trace__head">
+    <p class="label">
+      Trick Trace · {recordings.length > 0 ? `Recorded on the board at ~${recordings[0].hz} Hz` : "Schematic"}
+    </p>
+    {
+      panels.length > 1 && (
+        <div class="trace__tabs" role="group" aria-label="Choose a recording" data-trace-tabs hidden>
+          {panels.map(({ rec }, i) => (
+            <button type="button" class="trace__tab" aria-pressed={i === 0 ? "true" : "false"} data-trace-tab={rec.id}>
+              {rec.attempted}
+            </button>
+          ))}
+        </div>
+      )
+    }
+  </div>
+
+  <ul class="trace__legend" aria-hidden="true">
+    {
+      axes.map((key) => (
+        <li>
+          <svg width="28" height="8" viewBox="0 0 28 8">
+            <line class={`swatch swatch--${key}`} x1="0" x2="28" y1="4" y2="4" />
+          </svg>
+          <span class="label">
+            {key} · {axisNames[key]}
+          </span>
+        </li>
+      ))
+    }
+    <li>
+      <svg width="28" height="8" viewBox="0 0 28 8">
+        <line class="swatch swatch--decisive" x1="0" x2="28" y1="4" y2="4" />
+      </svg>
+      <span class="label">{recordings.length > 0 ? "Decided the verdict" : "Decides a flip"}</span>
+    </li>
+  </ul>
+
+  {
+    panels.length > 0 ? (
+      panels.map(({ rec, d, duration, series, verdict, description, peak, start }) => (
+        <div class="trace__panel" data-trace-panel={rec.id}>
+          <p class="visually-hidden">{description}</p>
+          <TraceChart
+            series={series}
+            duration={duration}
+            window={d ? { start: d.start, end: d.end } : undefined}
+            peak={peak}
+            scrub={{ label: rec.attempted.toLowerCase(), samples: rec.samples.map((s) => [s.t, s.gx, s.gy, s.gz]), start }}
+          />
+          <dl class="trace__verdict">
+            <div>
+              <dt class="label">Attempted</dt>
+              <dd>{rec.attempted}</dd>
+            </div>
+            <div>
+              <dt class="label">Firmware rule</dt>
+              <dd>
+                <code>{d ? `${d.rule} → ${verdict}` : verdict}</code>
+              </dd>
+            </div>
+          </dl>
+          <details class="trace__data">
+            <summary>View the data ({rec.samples.length} samples)</summary>
+            <div class="trace__table">
+              <table>
+                <caption class="visually-hidden">Gyro samples of the recorded {rec.attempted.toLowerCase()}, in °/s</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">t (ms)</th>
+                    <th scope="col">gx</th>
+                    <th scope="col">gy</th>
+                    <th scope="col">gz</th>
+                    <th scope="col">Peak window</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rec.samples.map((s) => {
+                    const inWindow = d && s.t >= d.start && s.t <= d.end;
+                    return (
+                      <tr class:list={{ "is-window": inWindow }}>
+                        <td>{s.t}</td>
+                        <td>{s.gx.toFixed(1)}</td>
+                        <td>{s.gy.toFixed(1)}</td>
+                        <td>{s.gz.toFixed(1)}</td>
+                        <td>{inWindow ? "Yes" : ""}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </details>
+        </div>
+      ))
+    ) : (
+      <div class="trace__panel">
+        <p class="visually-hidden">
+          A schematic, not recorded data: an idealised flip where rotation on the flip axis rises well above
+          {RULES.FLIP_GX_MIN} °/s inside the peak window while the pop axis stays low, which the firmware classifies as a
+          kickflip or heelflip.
+        </p>
+        <TraceChart
+          schematic
+          series={axes.map((key) => ({
+            key,
+            points: schematicSamples.map((s) => [s.t, s[key]] as [number, number]),
+            decisive: key === "gx",
+          }))}
+          duration={800}
+          window={schematicWindow ? { start: schematicWindow.start, end: schematicWindow.end } : undefined}
+        />
+        <dl class="trace__verdict">
+          <div>
+            <dt class="label">Firmware rule</dt>
+            <dd>
+              <code>
+                |gx| ≥ {RULES.FLIP_GX_MIN} and ≥ {RULES.FLIP_DOMINANCE} × |gy| → Kickflip or heelflip, by direction
+              </code>
+            </dd>
+          </div>
+        </dl>
+      </div>
+    )
+  }
+
+  <figcaption class="label">
+    {number && `Fig. ${number} · `}
+    {
+      recordings.length > 0
+        ? "The verdict comes from the firmware's rules, re-run here on the recorded samples."
+        : "Schematic: thresholds from the firmware, not recorded data."
+    }
+  </figcaption>
+</figure>
+
+<script>
+  document.querySelectorAll<HTMLElement>("[data-trace]").forEach((trace) => {
+    const tabs = trace.querySelector<HTMLElement>("[data-trace-tabs]");
+    if (!tabs) return;
+    const buttons = [...tabs.querySelectorAll<HTMLButtonElement>("[data-trace-tab]")];
+    const panels = [...trace.querySelectorAll<HTMLElement>("[data-trace-panel]")];
+
+    const select = (id: string) => {
+      buttons.forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.traceTab === id)));
+      panels.forEach((p) => (p.hidden = p.dataset.tracePanel !== id));
+    };
+
+    tabs.hidden = false;
+    buttons.forEach((b) => b.addEventListener("click", () => select(b.dataset.traceTab!)));
+    select(buttons[0].dataset.traceTab!);
+  });
+</script>
+
+<style>
+  .trace {
+    display: grid;
+    gap: var(--space-4);
+    margin: var(--space-6) 0 0;
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--ink);
+  }
+
+  .trace__head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-3);
+  }
+
+  .trace__head > .label {
+    font-weight: 400;
+  }
+
+  .trace__tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  .trace__tabs[hidden] {
+    display: none;
+  }
+
+  .trace__tab {
+    min-height: 44px;
+    padding: 0 var(--space-3);
+    border: 1px solid var(--ink);
+    border-radius: 2px;
+    background: transparent;
+    color: var(--ink);
+    font: inherit;
+    font-size: var(--fs-small);
+    cursor: pointer;
+    transition: background-color var(--dur-fast) var(--ease);
+  }
+
+  .trace__tab:hover {
+    background: var(--paper-2);
+  }
+
+  .trace__tab[aria-pressed="true"] {
+    background: var(--ink);
+    color: var(--paper);
+  }
+
+  .trace__legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-4);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .trace__legend li {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .trace__legend .label {
+    font-weight: 400;
+  }
+
+  .swatch {
+    stroke: var(--ink-2);
+    stroke-width: 1.5;
+  }
+
+  .swatch--gy {
+    stroke-dasharray: 6 3;
+  }
+
+  .swatch--gz {
+    stroke-dasharray: 1.5 3;
+  }
+
+  .swatch--decisive {
+    stroke: var(--signal);
+    stroke-width: 2.5;
+  }
+
+  .trace__panel {
+    display: grid;
+    gap: var(--space-4);
+  }
+
+  .trace__panel[hidden] {
+    display: none;
+  }
+
+  .trace__verdict {
+    display: grid;
+    gap: var(--space-3);
+    margin: 0;
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--rule);
+  }
+
+  @media (min-width: 640px) {
+    .trace__verdict {
+      grid-template-columns: auto 1fr;
+      column-gap: var(--space-6);
+    }
+  }
+
+  .trace__verdict > div {
+    display: grid;
+    gap: var(--space-1);
+  }
+
+  .trace__verdict dt {
+    font-weight: 400;
+  }
+
+  .trace__verdict code {
+    font-family: var(--ff-mono);
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--ink);
+  }
+
+  .trace__data summary {
+    display: inline-block;
+    padding-block: 10px;
+    font-size: var(--fs-small);
+    font-weight: 500;
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+    cursor: pointer;
+  }
+
+  .trace__data summary:hover {
+    color: var(--signal);
+  }
+
+  .trace__table {
+    max-height: 360px;
+    overflow: auto;
+    margin-top: var(--space-2);
+    border: 1px solid var(--rule);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--ff-mono);
+    font-size: 0.8125rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  th,
+  td {
+    padding: 4px var(--space-3);
+    text-align: right;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  th {
+    position: sticky;
+    top: 0;
+    background: var(--paper);
+    font-weight: 500;
+  }
+
+  tr.is-window td {
+    background: var(--paper-2);
+  }
+
+  figcaption {
+    font-weight: 400;
+  }
+</style>

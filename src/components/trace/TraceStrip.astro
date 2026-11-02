@@ -1,0 +1,107 @@
+---
+import { getRecordings } from "../../lib/traces";
+
+// The compact trace at the bottom of the hero: total rotation of one recorded trick,
+// drawn once on load. Renders nothing until there is a real recording.
+const recordings = getRecordings();
+const rec = recordings.find((r) => r.id.startsWith("kickflip")) ?? recordings[0];
+
+const duration = rec?.samples.at(-1)!.t ?? 1;
+const magnitudes = rec?.samples.map((s) => [s.t, Math.hypot(s.gx, s.gy, s.gz)] as const) ?? [];
+const max = Math.max(1, ...magnitudes.map(([, m]) => m));
+const points = magnitudes.map(([t, m]) => `${((t / duration) * 1000).toFixed(1)},${(100 - (m / max) * 92).toFixed(2)}`).join(" ");
+const d = rec?.detection;
+---
+
+{
+  rec && (
+    <a class="strip" href="/work/sk8sense#how-it-works">
+      <span class="strip__plot">
+        <svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+          {d && <rect class="strip__window" x={(d.start / duration) * 1000} y="0" width={((d.end - d.start) / duration) * 1000} height="100" />}
+          <line class="strip__base" x1="0" x2="1000" y1="100" y2="100" />
+          <polyline class="strip__line" points={points} />
+        </svg>
+      </span>
+      <span class="label strip__caption">
+        SK8Sense · {rec.attempted}, recorded at ~{rec.hz} Hz <span aria-hidden="true">→</span>
+      </span>
+    </a>
+  )
+}
+
+<style>
+  /* A child of the hero grid: between intro and index on phones, full width below both from 960px. */
+  .strip {
+    grid-column: 1 / -1;
+    order: 1;
+    display: grid;
+    gap: var(--space-2);
+    text-decoration: none;
+  }
+
+  @media (min-width: 960px) {
+    .strip {
+      order: 3;
+    }
+  }
+
+  .strip__plot {
+    position: relative;
+    display: block;
+    height: 64px;
+  }
+
+  @media (min-width: 960px) {
+    .strip__plot {
+      height: 96px;
+    }
+  }
+
+  svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  svg * {
+    vector-effect: non-scaling-stroke;
+  }
+
+  .strip__window {
+    fill: var(--paper-2);
+  }
+
+  .strip__base {
+    stroke: var(--rule);
+    stroke-width: 1;
+  }
+
+  .strip__line {
+    fill: none;
+    stroke: var(--signal);
+    stroke-width: 1.75;
+    stroke-linejoin: round;
+  }
+
+  .strip__caption {
+    font-weight: 400;
+  }
+
+  .strip:hover .strip__caption {
+    color: var(--signal);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .strip__line {
+      animation: strip-draw 900ms var(--ease) both;
+    }
+  }
+
+  @keyframes strip-draw {
+    from {
+      clip-path: inset(0 100% 0 0);
+    }
+  }
+</style>
