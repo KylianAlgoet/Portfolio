@@ -1,0 +1,94 @@
+---
+import { getCollection } from "astro:content";
+import SectionHeader from "../SectionHeader.astro";
+
+const roles = await getCollection("experience");
+---
+
+<section class="container section" aria-labelledby="experience">
+  <SectionHeader id="experience" title="Experience" />
+  <ul class="roles">
+    {
+      roles.map(({ data }) => (
+        <li class="role grid" data-reveal>
+          <p class="label role__period">{data.period}</p>
+          <div class="role__main">
+            <h3>
+              {data.title}, <span class="role__company">{data.company}</span>
+            </h3>
+            <p class="role__kind label">{data.kind}</p>
+            <p class="role__body">{data.body}</p>
+          </div>
+          <p class="label role__tags">{data.tags.join(" · ")}</p>
+        </li>
+      ))
+    }
+  </ul>
+</section>
+
+<style>
+  .roles {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .role {
+    row-gap: var(--space-2);
+    padding-block: var(--space-5);
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .role__period,
+  .role__main,
+  .role__tags {
+    grid-column: 1 / -1;
+  }
+
+  .role__main {
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .role h3 {
+    font-family: var(--ff-serif);
+    font-size: clamp(1.75rem, 1.4rem + 1vw, 2.25rem);
+    font-weight: 400;
+    line-height: 1.1;
+  }
+
+  .role__company {
+    font-style: italic;
+  }
+
+  .role__kind {
+    font-weight: 400;
+  }
+
+  .role__body {
+    max-width: var(--text-width);
+    color: var(--ink-body);
+  }
+
+  .role__tags {
+    font-weight: 400;
+    letter-spacing: 0.04em;
+  }
+
+  @media (min-width: 960px) {
+    .role__period {
+      grid-column: span 3;
+      padding-top: 0.6rem;
+    }
+
+    .role__main {
+      grid-column: 4 / span 6;
+    }
+
+    .role__tags {
+      grid-column: 10 / span 3;
+      padding-top: 0.6rem;
+      line-height: 1.8;
+    }
+  }
+</style>

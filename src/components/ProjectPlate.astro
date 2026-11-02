@@ -1,0 +1,195 @@
+---
+import { Picture } from "astro:assets";
+import type { CollectionEntry } from "astro:content";
+import FactStrip from "./FactStrip.astro";
+
+interface Props {
+  entry: CollectionEntry<"work">;
+  number: string;
+  mirrored?: boolean;
+}
+
+const { entry, number, mirrored = false } = Astro.props;
+const { data } = entry;
+const href = `/work/${entry.id}`;
+const titleId = `project-${entry.id}`;
+// Phone screenshots sit on a panel; landscape screenshots fill the frame.
+const isPortrait = data.cover.height > data.cover.width;
+---
+
+<article class:list={["plate grid", { "plate--mirrored": mirrored }]} aria-labelledby={titleId}>
+  <figure class="plate__figure" data-reveal>
+    <a href={href} class:list={["plate__frame", { "plate__frame--phone": isPortrait }]} tabindex="-1" aria-hidden="true">
+      <Picture
+        src={data.cover}
+        alt=""
+        formats={["avif", "webp"]}
+        widths={(isPortrait ? [280, 420, 560] : [640, 960, 1280, 1440]).filter((w) => w <= data.cover.width)}
+        sizes={isPortrait ? "(min-width: 960px) 280px, 60vw" : "(min-width: 960px) 58vw, 100vw"}
+        class="plate__image"
+      />
+    </a>
+    <figcaption class="label">Fig. {number} · {data.coverCaption}</figcaption>
+  </figure>
+
+  <div class="plate__body" data-reveal>
+    <p class="label">{number} · {data.kicker} · {data.year}</p>
+    <h3 id={titleId} class="plate__title"><a href={href}>{data.title}</a></h3>
+    <p class="plate__summary">{data.summary}</p>
+
+    <div class="plate__built">
+      <p class="label">What I built</p>
+      <ul>
+        {data.built.map((item) => <li>{item}</li>)}
+      </ul>
+    </div>
+
+    {data.quote && <blockquote class="plate__quote">{data.quote}</blockquote>}
+
+    <FactStrip facts={data.facts} columns={2} />
+
+    <div class="plate__links">
+      <a class="button button--primary" href={href}>
+        Read the case study <span aria-hidden="true">→</span>
+      </a>
+      <a href={data.repo} rel="noopener">Repository ↗</a>
+    </div>
+  </div>
+</article>
+
+<style>
+  .plate {
+    row-gap: var(--space-5);
+    align-items: start;
+  }
+
+  .plate__figure,
+  .plate__body {
+    grid-column: 1 / -1;
+  }
+
+  @media (min-width: 960px) {
+    .plate__figure {
+      grid-column: 1 / span 7;
+      position: sticky;
+      top: calc(var(--header-height) + var(--space-4));
+    }
+
+    .plate__body {
+      grid-column: 9 / span 4;
+    }
+
+    .plate--mirrored .plate__figure {
+      grid-column: 6 / span 7;
+      grid-row: 1;
+    }
+
+    .plate--mirrored .plate__body {
+      grid-column: 1 / span 4;
+      grid-row: 1;
+    }
+  }
+
+  .plate__figure {
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .plate__frame {
+    display: block;
+    border: 1px solid var(--rule);
+    background: var(--paper-2);
+    overflow: hidden;
+  }
+
+  .plate__frame :global(img) {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
+    transition: transform var(--dur-reveal) var(--ease);
+  }
+
+  .plate__frame--phone {
+    display: flex;
+    justify-content: center;
+    padding: clamp(var(--space-4), 4vw, var(--space-6)) var(--space-4) 0;
+    aspect-ratio: 16 / 10;
+  }
+
+  .plate__frame--phone :global(img) {
+    width: min(280px, 60%);
+    aspect-ratio: 1220 / 2712;
+    object-fit: cover;
+    object-position: top;
+    border-radius: 20px 20px 0 0;
+    align-self: flex-start;
+  }
+
+  .plate__frame:hover :global(img) {
+    transform: scale(1.015);
+  }
+
+  .plate__body {
+    display: grid;
+    gap: var(--space-4);
+  }
+
+  .plate__title {
+    font-family: var(--ff-serif);
+    font-size: clamp(2.5rem, 2rem + 1.6vw, 3.5rem);
+    font-weight: 400;
+    line-height: 1;
+  }
+
+  .plate__title a {
+    text-decoration: none;
+  }
+
+  .plate__title a:hover {
+    color: var(--ink);
+    text-decoration: underline 2px var(--signal);
+    text-underline-offset: 0.12em;
+  }
+
+  .plate__summary {
+    color: var(--ink-body);
+  }
+
+  .plate__built {
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .plate__built ul {
+    margin: 0;
+    padding-left: 1.1em;
+    display: grid;
+    gap: var(--space-2);
+    font-size: var(--fs-small);
+    line-height: 1.5;
+    color: var(--ink-body);
+  }
+
+  .plate__quote {
+    padding-block: var(--space-3);
+    border-block: 1px solid var(--ink);
+    font-family: var(--ff-serif);
+    font-size: 1.625rem;
+    font-style: italic;
+    line-height: 1.2;
+  }
+
+  .plate__links {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3) var(--space-4);
+    font-size: var(--fs-small);
+    font-weight: 500;
+  }
+
+  .plate__links > a:last-child {
+    padding-block: 10px;
+  }
+</style>

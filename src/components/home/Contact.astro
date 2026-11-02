@@ -1,0 +1,118 @@
+---
+import { contact } from "../../data/home";
+import { site } from "../../data/site";
+---
+
+<section class="container section contact" aria-labelledby="contact">
+  <div class="contact__inner grid" data-reveal>
+    <div class="contact__text">
+      <h2 id="contact" class="contact__title">{contact.title}</h2>
+      <p>{contact.body}</p>
+    </div>
+
+    <div class="contact__links">
+      <div class="contact__email">
+        <a href={`mailto:${site.email}`}>{site.email}</a>
+        <button type="button" class="button button--secondary" data-copy={site.email}>Copy</button>
+        <span class="visually-hidden" aria-live="polite" data-copy-status></span>
+      </div>
+      <ul>
+        <li><a href={site.github} rel="noopener">GitHub ↗</a></li>
+        <li><a href={site.linkedin} rel="noopener">LinkedIn ↗</a></li>
+        <li><a href={site.cv} download>Download CV (PDF)</a></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<script>
+  const button = document.querySelector<HTMLButtonElement>("[data-copy]");
+  const status = document.querySelector<HTMLElement>("[data-copy-status]");
+
+  button?.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(button.dataset.copy ?? "");
+      button.textContent = "Copied";
+      if (status) status.textContent = "Email copied";
+      setTimeout(() => {
+        button.textContent = "Copy";
+        if (status) status.textContent = "";
+      }, 2000);
+    } catch {
+      if (status) status.textContent = "Copy failed. Select the address instead.";
+    }
+  });
+</script>
+
+<style>
+  .contact__inner {
+    row-gap: var(--space-5);
+    padding-top: var(--space-6);
+    border-top: 1px solid var(--ink);
+  }
+
+  .contact__text,
+  .contact__links {
+    grid-column: 1 / -1;
+  }
+
+  .contact__text {
+    display: grid;
+    gap: var(--space-4);
+  }
+
+  .contact__title {
+    font-size: var(--fs-hero);
+    line-height: 0.98;
+  }
+
+  .contact__text p {
+    max-width: 30em;
+    font-size: clamp(var(--fs-body), 1rem + 0.5vw, var(--fs-lead));
+    color: var(--ink-body);
+  }
+
+  .contact__links {
+    display: grid;
+    gap: var(--space-4);
+    align-content: end;
+  }
+
+  .contact__email {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
+  }
+
+  .contact__email a {
+    font-family: var(--ff-serif);
+    font-size: clamp(1.5rem, 1.2rem + 1vw, 2rem);
+    overflow-wrap: anywhere;
+  }
+
+  .contact__links ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-5);
+    font-weight: 500;
+  }
+
+  .contact__links li a {
+    display: inline-block;
+    padding-block: 10px;
+  }
+
+  @media (min-width: 960px) {
+    .contact__text {
+      grid-column: span 7;
+    }
+
+    .contact__links {
+      grid-column: 8 / span 5;
+    }
+  }
+</style>

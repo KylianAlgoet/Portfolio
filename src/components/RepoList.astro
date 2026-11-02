@@ -1,0 +1,80 @@
+---
+import { getPublished } from "../lib/content";
+import { site } from "../data/site";
+
+const repos = await getPublished("repos");
+---
+
+{
+  repos.length > 0 && (
+    <section class="repos" aria-labelledby="repos-title" data-reveal>
+      <h3 id="repos-title" class="label">More on GitHub</h3>
+      <ul>
+        {repos.map((repo) => (
+          <li>
+            <a href={repo.data.url} rel="noopener">
+              <span class="repos__name">{repo.data.name}</span>
+              <span class="repos__description">{repo.data.description}</span>
+              <span aria-hidden="true">↗</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+      <a class="repos__all" href={site.github} rel="noopener">
+        All repositories ↗
+      </a>
+    </section>
+  )
+}
+
+<style>
+  .repos {
+    display: grid;
+    gap: var(--space-3);
+  }
+
+  .repos ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border-top: 1px solid var(--ink);
+  }
+
+  .repos li a {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--space-1) var(--space-4);
+    padding: var(--space-3) 0;
+    border-bottom: 1px solid var(--rule);
+    text-decoration: none;
+  }
+
+  .repos__name {
+    font-family: var(--ff-mono);
+    font-size: var(--fs-small);
+    font-weight: 500;
+  }
+
+  .repos__description {
+    grid-column: 1;
+    color: var(--ink-2);
+    font-size: var(--fs-small);
+  }
+
+  @media (min-width: 960px) {
+    .repos li a {
+      grid-template-columns: 16rem minmax(0, 1fr) auto;
+    }
+
+    .repos__description {
+      grid-column: auto;
+    }
+  }
+
+  .repos__all {
+    justify-self: start;
+    padding-block: 10px;
+    font-size: var(--fs-small);
+    font-weight: 500;
+  }
+</style>

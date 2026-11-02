@@ -1,0 +1,122 @@
+---
+import SectionHeader from "../SectionHeader.astro";
+import { about } from "../../data/home";
+---
+
+<section class="container section" aria-labelledby="about">
+  <SectionHeader id="about" title="About" />
+  <div class="about grid">
+    <div class="about__text" data-reveal>
+      {about.body.map((paragraph) => <p>{paragraph}</p>)}
+    </div>
+
+    <div class="about__facts" data-reveal>
+      <div class="about__block">
+        <h3 class="label">Education</h3>
+        <p>
+          <strong>{about.education.degree}</strong>
+          <br />
+          {about.education.school}
+        </p>
+        <p class="label about__meta">{about.education.period} · {about.education.note}</p>
+      </div>
+      <div class="about__block">
+        <h3 class="label">Languages</h3>
+        <p>{about.languages.join(", ")}</p>
+      </div>
+    </div>
+
+    <div class="about__skills" data-reveal>
+      <h3 class="label">Tools I've used in real projects</h3>
+      <dl>
+        {
+          about.skills.map((s) => (
+            <div>
+              <dt>{s.group}</dt>
+              <dd>{s.items.join(", ")}</dd>
+            </div>
+          ))
+        }
+      </dl>
+    </div>
+  </div>
+</section>
+
+<style>
+  .about {
+    margin-top: var(--space-5);
+    row-gap: var(--space-6);
+  }
+
+  .about__text,
+  .about__facts,
+  .about__skills {
+    grid-column: 1 / -1;
+  }
+
+  .about__text p {
+    max-width: 30em;
+    font-size: clamp(var(--fs-body), 1rem + 0.5vw, var(--fs-lead));
+    line-height: 1.55;
+  }
+
+  .about__facts {
+    display: grid;
+    gap: var(--space-5);
+    align-content: start;
+  }
+
+  .about__block {
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .about__block strong {
+    font-weight: 600;
+  }
+
+  .about__meta {
+    font-weight: 400;
+  }
+
+  .about__skills {
+    display: grid;
+    gap: var(--space-3);
+  }
+
+  .about__skills dl {
+    display: grid;
+    border-top: 1px solid var(--ink);
+  }
+
+  .about__skills dl > div {
+    display: grid;
+    grid-template-columns: minmax(8rem, 1fr) 3fr;
+    gap: var(--space-3);
+    padding-block: var(--space-3);
+    border-bottom: 1px solid var(--rule);
+    font-size: var(--fs-small);
+  }
+
+  .about__skills dt {
+    font-weight: 600;
+  }
+
+  .about__skills dd {
+    color: var(--ink-body);
+  }
+
+  @media (min-width: 960px) {
+    .about__text {
+      grid-column: span 7;
+    }
+
+    .about__facts {
+      grid-column: 9 / span 4;
+    }
+
+    .about__skills {
+      grid-column: 1 / span 9;
+    }
+  }
+</style>

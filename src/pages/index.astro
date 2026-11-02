@@ -1,10 +1,19 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { site } from "../data/site";
-import { hero } from "../data/home";
+import { hero, work } from "../data/home";
 import { getWork } from "../lib/content";
+import SectionHeader from "../components/SectionHeader.astro";
+import ProjectPlate from "../components/ProjectPlate.astro";
+import RepoList from "../components/RepoList.astro";
+import Principles from "../components/home/Principles.astro";
+import Experience from "../components/home/Experience.astro";
+import PlaygroundTeaser from "../components/home/PlaygroundTeaser.astro";
+import About from "../components/home/About.astro";
+import Contact from "../components/home/Contact.astro";
 
-const projects = (await getWork()).map((entry, i) => ({
+const entries = await getWork();
+const projects = entries.map((entry, i) => ({
   number: String(i + 1).padStart(2, "0"),
   title: entry.data.title,
   href: `/work/${entry.id}`,
@@ -52,9 +61,33 @@ const projects = (await getWork()).map((entry, i) => ({
       </nav>
     </div>
   </section>
+
+  <section class="container section" aria-labelledby="work">
+    <SectionHeader id="work" title={work.title} intro={work.intro} />
+    <div class="plates">
+      {
+        entries.map((entry, i) => (
+          <ProjectPlate entry={entry} number={String(i + 1).padStart(2, "0")} mirrored={i % 2 === 1} />
+        ))
+      }
+      <RepoList />
+    </div>
+  </section>
+
+  <Principles />
+  <Experience />
+  <PlaygroundTeaser />
+  <About />
+  <Contact />
 </BaseLayout>
 
 <style>
+  .plates {
+    display: grid;
+    gap: clamp(var(--space-7), 8vw, var(--space-9));
+    margin-top: var(--space-6);
+  }
+
   .hero {
     padding-top: clamp(var(--space-5), 6vw, var(--space-7));
   }

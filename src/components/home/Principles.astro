@@ -1,0 +1,55 @@
+---
+import SectionHeader from "../SectionHeader.astro";
+import { principles } from "../../data/home";
+---
+
+<section class="container section" aria-labelledby="how-i-work">
+  <SectionHeader id="how-i-work" title="How I work" />
+  <ol class="principles grid">
+    {
+      principles.map((p, i) => (
+        <li class="principle" data-reveal>
+          <span class="label">0{i + 1}</span>
+          <h3>{p.title}</h3>
+          <p>{p.body}</p>
+        </li>
+      ))
+    }
+  </ol>
+</section>
+
+<style>
+  .principles {
+    margin: var(--space-5) 0 0;
+    padding: 0;
+    list-style: none;
+    row-gap: var(--space-5);
+  }
+
+  .principle {
+    grid-column: 1 / -1;
+    display: grid;
+    gap: var(--space-2);
+    align-content: start;
+  }
+
+  .principle h3 {
+    font-family: var(--ff-serif);
+    font-size: 1.75rem;
+    font-weight: 400;
+    line-height: 1.1;
+  }
+
+  .principle p {
+    color: var(--ink-body);
+    font-size: var(--fs-small);
+    line-height: 1.6;
+  }
+
+  @media (min-width: 960px) {
+    .principle {
+      grid-column: span 4;
+      padding-right: var(--space-4);
+    }
+  }
+</style>

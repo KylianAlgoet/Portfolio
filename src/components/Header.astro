@@ -1,5 +1,10 @@
 ---
-import { nav, site } from "../data/site";
+import { nav as allNav, site } from "../data/site";
+import { getPlayground } from "../lib/content";
+
+// The Playground link only appears once there is something published to show.
+const hasPlayground = (await getPlayground()).length > 0;
+const nav = allNav.filter((item) => item.href !== "/#playground" || hasPlayground);
 
 const path = Astro.url.pathname;
 // Highlight a nav item only when we are on a page inside its section.

@@ -1,0 +1,145 @@
+---
+import { Image } from "astro:assets";
+import SectionHeader from "../SectionHeader.astro";
+import { playground } from "../../data/home";
+import { getPlayground } from "../../lib/content";
+
+const items = (await getPlayground()).slice(0, 4);
+const tape = { game: "Game", render: "Render", animation: "Animation" } as const;
+---
+
+{
+  items.length > 0 && (
+    <section class="container section" aria-labelledby="playground">
+      <SectionHeader id="playground" title={playground.title} intro={playground.intro} />
+      <ul class="tiles">
+        {items.map((item) => (
+          <li class:list={["tile", `tile--${item.data.type}`]} data-reveal>
+            <a href={item.data.type === "game" ? `/playground/${item.id}` : `/playground#${item.id}`}>
+              <span class="tile__media">
+                {item.data.cover ? (
+                  <Image src={item.data.cover} alt={item.data.coverAlt ?? ""} widths={[400, 800, 1200]} sizes="(min-width: 960px) 50vw, 100vw" />
+                ) : (
+                  <span class="tile__placeholder label">No media yet</span>
+                )}
+              </span>
+              <span class="tile__tape label">{tape[item.data.type]}</span>
+              <span class="tile__meta">
+                <span class="tile__title">{item.data.title}</span>
+                <span class="label">
+                  {item.data.tools.join(", ")} · {item.data.year}
+                </span>
+              </span>
+            </a>
+          </li>
+        ))}
+      </ul>
+      <a class="playground__more" href="/playground">
+        See everything in the Playground <span aria-hidden="true">→</span>
+      </a>
+    </section>
+  )
+}
+
+<style>
+  .tiles {
+    margin: var(--space-5) 0 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-5) var(--gutter);
+  }
+
+  .tile {
+    grid-column: span 2;
+  }
+
+  @media (min-width: 640px) {
+    .tile--render,
+    .tile--animation {
+      grid-column: span 1;
+    }
+  }
+
+  @media (min-width: 960px) {
+    .tiles {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+
+  .tile a {
+    position: relative;
+    display: grid;
+    gap: var(--space-2);
+    text-decoration: none;
+  }
+
+  .tile__media {
+    display: block;
+    overflow: hidden;
+    aspect-ratio: 16 / 9;
+    background: var(--paper-2);
+    border: 1px solid var(--rule);
+  }
+
+  .tile--render .tile__media,
+  .tile--animation .tile__media {
+    aspect-ratio: 4 / 5;
+  }
+
+  .tile__media :global(img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform var(--dur-reveal) var(--ease);
+  }
+
+  .tile a:hover .tile__media :global(img) {
+    transform: scale(1.02);
+  }
+
+  .tile__placeholder {
+    display: grid;
+    place-items: center;
+    height: 100%;
+  }
+
+  /* The one zine-like touch on the site: a slightly crooked label. */
+  .tile__tape {
+    position: absolute;
+    top: 14px;
+    left: -6px;
+    padding: 4px 10px;
+    background: var(--ink);
+    color: var(--paper);
+    transform: rotate(-3deg);
+    transition: transform var(--dur-fast) var(--ease);
+  }
+
+  .tile a:hover .tile__tape {
+    transform: rotate(0deg);
+  }
+
+  .tile__meta {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: var(--space-2);
+  }
+
+  .tile__title {
+    font-family: var(--ff-serif);
+    font-size: 1.625rem;
+    line-height: 1.1;
+  }
+
+  .playground__more {
+    display: inline-block;
+    margin-top: var(--space-5);
+    padding-block: 10px;
+    font-size: var(--fs-small);
+    font-weight: 500;
+  }
+</style>

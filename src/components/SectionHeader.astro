@@ -1,0 +1,49 @@
+---
+interface Props {
+  id: string;
+  title: string;
+  intro?: string;
+  label?: string;
+}
+
+const { id, title, intro, label } = Astro.props;
+---
+
+<header class="section-header grid">
+  <div class="section-header__title">
+    {label && <p class="label">{label}</p>}
+    <h2 id={id}>{title}</h2>
+  </div>
+  {intro && <p class="section-header__intro">{intro}</p>}
+</header>
+
+<style>
+  .section-header {
+    align-items: end;
+    row-gap: var(--space-3);
+    padding-bottom: var(--space-4);
+    border-bottom: 1px solid var(--ink);
+  }
+
+  .section-header__title {
+    grid-column: 1 / -1;
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .section-header__intro {
+    grid-column: 1 / -1;
+    max-width: 34em;
+    color: var(--ink-2);
+  }
+
+  @media (min-width: 960px) {
+    .section-header__title {
+      grid-column: span 6;
+    }
+
+    .section-header__intro {
+      grid-column: 8 / span 5;
+    }
+  }
+</style>
