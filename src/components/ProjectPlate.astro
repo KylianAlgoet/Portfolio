@@ -24,8 +24,8 @@ const isPortrait = data.cover.height > data.cover.width;
         src={data.cover}
         alt=""
         formats={["avif", "webp"]}
-        widths={(isPortrait ? [280, 420, 560] : [640, 960, 1280, 1440]).filter((w) => w <= data.cover.width)}
-        sizes={isPortrait ? "(min-width: 960px) 280px, 60vw" : "(min-width: 960px) 58vw, 100vw"}
+        widths={(isPortrait ? [200, 280, 420, 560] : [640, 960, 1280, 1440]).filter((w) => w <= data.cover.width)}
+        sizes={isPortrait ? "(min-width: 960px) 280px, 36vw" : "(min-width: 960px) 58vw, 100vw"}
         class="plate__image"
       />
     </a>

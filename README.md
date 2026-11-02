@@ -31,6 +31,7 @@ src/
   scripts/deck/         The DeckForge 3D viewer, loaded on demand
   styles/               tokens.css (design tokens), global.css and prose.css
 scripts/                Build-time checks
+tests/e2e/              Playwright and axe tests
 ```
 
 ## Adding content
@@ -41,6 +42,19 @@ scripts/                Build-time checks
 - **A trick recording:** add a CSV to `src/data/traces/` (see the README there).
 - **Unfinished content:** set `draft: true`. Drafts never reach the production build, and the
   build fails if the text `TODO(input)` ends up in `dist/`.
+
+## Testing
+
+```bash
+npx playwright install chromium   # once
+npm run build
+npm test                           # Playwright smoke tests + axe (WCAG 2.2 AA), desktop and mobile
+```
+
+CI (`.github/workflows/ci.yml`) runs the type check, the build, these tests and Lighthouse on
+every push and pull request. Lighthouse must score at least 95 in every category, with
+LCP ≤ 2.5 s, CLS ≤ 0.1, TBT ≤ 200 ms and at most 30 kB of JavaScript per page
+(`lighthouserc.json`; three.js on the DeckForge page only loads on demand).
 
 ## Deploying
 
